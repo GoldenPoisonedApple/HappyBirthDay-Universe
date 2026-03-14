@@ -5,9 +5,8 @@ import { useThree } from '@react-three/fiber';
 
 export function usePointerDrag(
   onDragStart: () => void,
-  onDragMove: (deltaX: number) => void,
-  onDragEnd: () => void,
-  onVerticalDrag?: (deltaY: number) => void
+  onDragMove: (deltaX: number, deltaY: number) => void,
+  onDragEnd: () => void
 ) {
 	// ドラッグ状態
   const isDragging = useRef(false);
@@ -29,8 +28,7 @@ export function usePointerDrag(
 
       const deltaX = e.clientX - previousPointerPosition.current.x;
       const deltaY = e.clientY - previousPointerPosition.current.y;
-      onDragMove(deltaX);
-      if (onVerticalDrag) onVerticalDrag(deltaY);
+      onDragMove(deltaX, deltaY);
       previousPointerPosition.current = { x: e.clientX, y: e.clientY };
     };
 
@@ -49,5 +47,5 @@ export function usePointerDrag(
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
     };
-  }, [gl, onDragStart, onDragMove, onDragEnd, onVerticalDrag]);
+  }, [gl, onDragStart, onDragMove, onDragEnd]);
 }

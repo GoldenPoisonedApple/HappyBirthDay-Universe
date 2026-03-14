@@ -7,6 +7,7 @@ import {
   DAMPING_FACTOR,
   CONSTANT_ROTATION_SPEED,
   VELOCITY_THRESHOLD,
+  ORBIT_ROTATION_SPEED,
 } from '../constants';
 
 export type PhysicsMode = 'rotation' | 'orbit';
@@ -29,8 +30,8 @@ export function usePhysicsSimulation(
     rotationGroupRef.current.rotation.x += angularVelocity.current.x;
     rotationGroupRef.current.rotation.y += angularVelocity.current.y;
 
-    // 回転角度の変化を通知（自転モードのみ）
-    if (mode === 'rotation' && onRotationChange) {
+    // 回転角度の変化を通知（両モード共通）
+    if (onRotationChange) {
       const currentRotationY = rotationGroupRef.current.rotation.y;
       const deltaRotation = currentRotationY - previousRotationY.current;
       if (Math.abs(deltaRotation) > 0) {
@@ -53,6 +54,19 @@ export function usePhysicsSimulation(
 
       // 常に少し回転させるための一定の角速度を加算
       angularVelocity.current.y += CONSTANT_ROTATION_SPEED * delta;
+    } else if (mode === 'orbit' && !isDragging.current) {
+      // 公転モードでもドラッグしていないときは減衰
+      const decay = Math.exp(-DAMPING_FACTOR * delta);
+
+      angularVelocity.current.x *= decay;
+      angularVelocity.current.y *= decay;
+
+      // 速度が微小になったら0に丸め、無駄な浮動小数点演算を停止する
+      if (Math.abs(angularVelocity.current.x) < VELOCITY_THRESHOLD) angularVelocity.current.x = 0;
+      if (Math.abs(angularVelocity.current.y) < VELOCITY_THRESHOLD) angularVelocity.current.y = 0;
+
+      // 公転モードでは定常回転を加算
+      angularVelocity.current.y += ORBIT_ROTATION_SPEED * delta;
     }
   });
 
@@ -75,5 +89,6 @@ export function usePhysicsSimulation(
     setAngularVelocity,
     resetAngularVelocity,
     setIsDragging,
+    angularVelocity,
   };
 }

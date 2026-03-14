@@ -12,28 +12,23 @@ import {
   EARTH_RADIUS_ROTATION,
   EARTH_RADIUS_ORBIT,
   ORBIT_RADIUS,
-  ORBIT_VELOCITY_DECAY_FACTOR,
-  MIN_ORBIT_VELOCITY,
-  SELF_ROTATION_RATIO,
   DRAG_SENSITIVITY_HORIZONTAL,
-  DRAG_SENSITIVITY_ORBIT,
   POINTS_COUNT,
+  SELF_ROTATION_RATIO,
 } from '../constants';
 
 interface Props {
   mode: 'rotation' | 'orbit';
   onVerticalDrag: (deltaY: number) => void;
-  onEarthPositionChange: (pos: THREE.Vector3) => void;
   onRotationChange?: (deltaRotation: number) => void;
-  onOrbitChange?: (deltaOrbit: number) => void;
+  onEarthPositionChange: (pos: THREE.Vector3) => void;
 }
 
 // 地球をパーティクルで表現し、インタラクティブな操作を提供するメインコンポーネント
-export default function InteractiveParticleSphere({ mode, onVerticalDrag, onEarthPositionChange, onRotationChange, onOrbitChange }: Props) {
+export default function InteractiveParticleSphere({ mode, onVerticalDrag, onRotationChange, onEarthPositionChange }: Props) {
   const rotationGroupRef = useRef<THREE.Group>(null);
   const orbitGroupRef = useRef<THREE.Group>(null);
   const orbitAngleRef = useRef(0);
-  const orbitVelocityRef = useRef(0);
   const earthWorldPosition = useRef(new THREE.Vector3());
 
   // モードに応じて地球の半径を変更
@@ -47,7 +42,7 @@ export default function InteractiveParticleSphere({ mode, onVerticalDrag, onEart
   }), [earthRadius]);
 
   // 物理シミュレーションフックを使用
-  const { setAngularVelocity, resetAngularVelocity, setIsDragging } = usePhysicsSimulation(
+  const { setAngularVelocity, resetAngularVelocity, setIsDragging, angularVelocity } = usePhysicsSimulation(
     rotationGroupRef,
     mode,
     onRotationChange
@@ -61,16 +56,17 @@ export default function InteractiveParticleSphere({ mode, onVerticalDrag, onEart
 
   // ドラッグ中の処理（水平方向）
   const handleDragMove = useCallback(
-    (deltaX: number) => {
+    (deltaX: number, deltaY: number) => {
       if (mode === 'rotation') {
         // 自転モード：ドラッグで回転速度を変更
         setAngularVelocity(0, deltaX * DRAG_SENSITIVITY_HORIZONTAL);
       } else {
-        // 公転モード：ドラッグで公転速度を調整
-        orbitVelocityRef.current += deltaX * DRAG_SENSITIVITY_ORBIT;
+        // 公転モード：ドラッグで自転速度を調整（これが公転速度も決定）
+        setAngularVelocity(0, deltaX * DRAG_SENSITIVITY_HORIZONTAL);
       }
+      onVerticalDrag(deltaY);
     },
-    [setAngularVelocity, mode]
+    [setAngularVelocity, mode, onVerticalDrag]
   );
 
   // ドラッグ終了時の処理
@@ -79,30 +75,18 @@ export default function InteractiveParticleSphere({ mode, onVerticalDrag, onEart
   }, [setIsDragging]);
 
   // ポインタドラッグフックを使用
-  usePointerDrag(handleDragStart, handleDragMove, handleDragEnd, onVerticalDrag);
+  usePointerDrag(handleDragStart, handleDragMove, handleDragEnd);
 
   // 公転アニメーションと位置更新
   useFrame((_, delta) => {
     if (mode === 'orbit' && orbitGroupRef.current) {
-      const previousOrbitAngle = orbitAngleRef.current;
+      // 自転速度に基づいて公転速度を計算（1公転 = 365自転）
+      const currentRotationSpeed = angularVelocity.current.y;
+      const orbitSpeed = currentRotationSpeed / SELF_ROTATION_RATIO;
 
-      // 公転速度を徐々に減衰させ、ゆっくりとした公転になる
-      orbitVelocityRef.current *= Math.exp(-ORBIT_VELOCITY_DECAY_FACTOR * delta);
-      orbitVelocityRef.current += MIN_ORBIT_VELOCITY; // 最低公転速度を維持
-
-      orbitAngleRef.current += orbitVelocityRef.current * delta;
+      orbitAngleRef.current += orbitSpeed * delta;
       orbitGroupRef.current.position.x = Math.cos(orbitAngleRef.current) * orbitRadius;
       orbitGroupRef.current.position.z = Math.sin(orbitAngleRef.current) * orbitRadius;
-
-      // 公転角度の変化を通知
-      if (onOrbitChange) {
-        const deltaOrbit = orbitAngleRef.current - previousOrbitAngle;
-        onOrbitChange(deltaOrbit);
-      }
-
-      // 自転（1公転 = 365自転）
-      const selfRotationSpeed = orbitVelocityRef.current * SELF_ROTATION_RATIO;
-      setAngularVelocity(0, selfRotationSpeed);
     }
 
     // 毎フレーム、地球位置を通知
@@ -111,6 +95,9 @@ export default function InteractiveParticleSphere({ mode, onVerticalDrag, onEart
       onEarthPositionChange(earthWorldPosition.current);
     }
   });
+
+  // ポインタドラッグフックを使用
+  usePointerDrag(handleDragStart, handleDragMove, handleDragEnd);
 
   return (
     <>

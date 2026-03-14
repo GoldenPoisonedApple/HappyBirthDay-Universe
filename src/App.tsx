@@ -25,6 +25,9 @@ function AppContent() {
   const zoom = useRef(0);
   const { camera } = useThree();
 
+  // 初期日付
+  const initialDate = new Date();
+
   // 地球のワールド座標を外部から受け取る
   const earthPosition = useRef(new THREE.Vector3(0, 0, 0));
 
@@ -40,31 +43,27 @@ function AppContent() {
     zoomTarget.current = Math.max(0, Math.min(1, zoomTarget.current + deltaY * DRAG_SENSITIVITY_VERTICAL));
   };
 
+  // 現在の自転角度
+  const currentRotationAngle = useRef(0);
+
+  // 地球の回転角度変化を処理（両モード共通）
+  const handleRotationChange = (deltaRotation: number) => {
+    currentRotationAngle.current += deltaRotation;
+  };
+
   // 地球の位置変更を処理
   const handleEarthPositionChange = (pos: THREE.Vector3) => {
     earthPosition.current.copy(pos);
   };
 
-  // 地球の回転角度変化を処理
-  const handleRotationChange = (deltaRotation: number) => {
-    // 自転1回転（2πラジアン）で1日進む
-    const daysPerRotation = 1;
-    const msPerDay = 24 * 60 * 60 * 1000; // 1日のミリ秒
-    const deltaMs = (deltaRotation / (2 * Math.PI)) * daysPerRotation * msPerDay;
-    simulatedTimeRef.current = new Date(simulatedTimeRef.current.getTime() + deltaMs);
-  };
-
-  // 地球の公転角度変化を処理
-  const handleOrbitChange = (deltaOrbit: number) => {
-    // 公転1回転（2πラジアン）で1年（365日）進む
-    const yearsPerOrbit = 1;
-    const msPerYear = 365 * 24 * 60 * 60 * 1000; // 1年のミリ秒（365日）
-    const deltaMs = (deltaOrbit / (2 * Math.PI)) * yearsPerOrbit * msPerYear;
-    simulatedTimeRef.current = new Date(simulatedTimeRef.current.getTime() + deltaMs);
-  };
+  // 地球の公転角度変化を処理（削除：自転に基づいて時間を進めるため）
 
   // 日付表示フォーマット（YYYY-MM-DD HH:MM）
-  function formatDate(date: Date) {
+  function formatDate(rotationAngle: number) {
+    // 自転角度から時間を計算
+    const secondsPerDay = 24 * 60 * 60;
+    const simulatedSeconds = (rotationAngle / (2 * Math.PI)) * secondsPerDay;
+    const date = new Date(initialDate.getTime() + simulatedSeconds * 1000);
     const pad = (n: number) => String(n).padStart(2, '0');
     const year = date.getFullYear();
     const month = pad(date.getMonth() + 1);
@@ -75,9 +74,7 @@ function AppContent() {
   }
 
   // シミュレーション内の日時管理
-  const initialSimulatedDate = new Date();
-  const simulatedTimeRef = useRef(initialSimulatedDate);
-  const [displayTime, setDisplayTime] = useState(() => formatDate(initialSimulatedDate));
+  const [displayTime, setDisplayTime] = useState(() => formatDate(0));
   const timeAccumulator = useRef(0);
 
   // 毎フレームの更新処理
@@ -101,14 +98,14 @@ function AppContent() {
       setMode(nextMode);
     }
 
-    // 日付をモードに応じて進める（自転: ドラッグ/回転に基づく、公転: 公転角度に基づく）
-    // 公転モードでは handleOrbitChange で進めるので、ここでは何もしない
+    // 日付を自転角度に基づいて進める（両モード共通）
+    // 自転1回転 = 1日、公転は自転に同期
 
     // 表示更新は0.2秒ごとに行う
     timeAccumulator.current += delta;
     if (timeAccumulator.current >= 0.05) {
       timeAccumulator.current = 0;
-      setDisplayTime(formatDate(simulatedTimeRef.current));
+      setDisplayTime(formatDate(currentRotationAngle.current));
     }
   });
 
@@ -135,9 +132,8 @@ function AppContent() {
       <InteractiveParticleSphere
         mode={mode}
         onVerticalDrag={handleVerticalDrag}
-        onEarthPositionChange={handleEarthPositionChange}
         onRotationChange={handleRotationChange}
-        onOrbitChange={handleOrbitChange}
+        onEarthPositionChange={handleEarthPositionChange}
       />
     </>
   );

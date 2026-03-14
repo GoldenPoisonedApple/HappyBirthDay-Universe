@@ -26,22 +26,28 @@ export const ORBIT_RADIUS = 18;                // 公転軌道の半径
 // 公転物理設定
 export const ORBIT_VELOCITY_DECAY_FACTOR = 2.0; // 公転速度の減衰係数
 export const MIN_ORBIT_VELOCITY = 0.0001;      // 最低公転速度
-export const SELF_ROTATION_RATIO = 365;        // 自転と公転の速度比（1公転 = 365自転）
+export const SELF_ROTATION_RATIO = 10;         // 自転と公転の速度比（視覚的に1分で1年進む）
 
 // ドラッグ感度設定
 export const DRAG_SENSITIVITY_HORIZONTAL = 0.005;  // 水平ドラッグの感度
 export const DRAG_SENSITIVITY_VERTICAL = 0.0015;   // 垂直ドラッグの感度
 export const DRAG_SENSITIVITY_ORBIT = 0.002;      // 公転速度調整のドラッグ感度
+export const DRAG_SENSITIVITY_TIME_ROTATION = 0.01; // 自転モードの時間ドラッグ感度
+export const DRAG_SENSITIVITY_TIME_ORBIT = 0.005;   // 公転モードの時間ドラッグ感度
 
 // 物理シミュレーション設定
 export const DAMPING_FACTOR = 5.0;             // 回転減衰係数
 export const CONSTANT_ROTATION_SPEED = 0.01;   // 定常回転速度
 export const VELOCITY_THRESHOLD = 0.0001;      // 速度の閾値（これ以下は0とみなす）
 
-// 日付表示の時間スケール
-export const ROTATION_TIME_SCALE = 60 * 60;    // 自転モード：1秒が1時間に相当 (3600秒)
-export const ORBIT_TIME_SCALE = 24 * 60 * 60;  // 公転モード：1秒が1日に相当 (86400秒)
+// 日付表示の時間スケール（通常時の時間進捗）
+// 1秒で進む実際の秒数
+export const ROTATION_TIME_SCALE = 10 * 60;    // 自転モード：1秒で10分進む (600秒)
+export const ORBIT_TIME_SCALE = 2 * 60 * 60;   // 公転モード：1秒で2時間進む (7200秒)
+
+// 公転モードの自転速度（自転モードより速い）
+export const ORBIT_ROTATION_SPEED = CONSTANT_ROTATION_SPEED * 10; // 自転モードの10倍速
 
 // ジオメトリ設定
-export const POINTS_COUNT = 1000;              // 球面上に配置するパーティクル数
-export const AXIS_LINE_MULTIPLIER = 1.2;       // 軸線の長さ倍率
+export const POINTS_COUNT = 2000;             // 球体上のパーティクル数
+export const AXIS_LINE_MULTIPLIER = 1.5;      // 軸線の長さ倍率
