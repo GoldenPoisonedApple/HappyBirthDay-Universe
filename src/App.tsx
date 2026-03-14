@@ -94,9 +94,8 @@ function InteractiveParticleSphere() {
       angularVelocity.current.x *= decay;
       angularVelocity.current.y *= decay;
 
-      // 速度が微小になったら0に丸め、無駄な浮動小数点演算を停止する
-      if (Math.abs(angularVelocity.current.x) < 0.0001) angularVelocity.current.x = 0;
-      if (Math.abs(angularVelocity.current.y) < 0.0001) angularVelocity.current.y = 0;
+      // 常に少し回転させるための一定の角速度を加算
+      angularVelocity.current.y += 0.01 * delta;
     }
   });
 
