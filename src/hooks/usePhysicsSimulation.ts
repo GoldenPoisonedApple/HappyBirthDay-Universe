@@ -2,7 +2,12 @@ import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
-export function usePhysicsSimulation(rotationGroupRef: React.RefObject<THREE.Group | null>) {
+export type PhysicsMode = 'rotation' | 'orbit';
+
+export function usePhysicsSimulation(
+  rotationGroupRef: React.RefObject<THREE.Group | null>,
+  mode: PhysicsMode
+) {
   const angularVelocity = useRef({ x: 0, y: 0 });
   const isDragging = useRef(false);
 
@@ -13,8 +18,8 @@ export function usePhysicsSimulation(rotationGroupRef: React.RefObject<THREE.Gro
     rotationGroupRef.current.rotation.x += angularVelocity.current.x;
     rotationGroupRef.current.rotation.y += angularVelocity.current.y;
 
-    // ドラッグ中でない場合、角速度を減衰させる（慣性の表現）
-    if (!isDragging.current) {
+    // rotationモードのみ、減衰や定常回転を行う
+    if (mode === 'rotation' && !isDragging.current) {
       // フレームレート非依存の指数減衰 (Exponential Decay)
       const dampingFactor = 5.0; // 減衰係数（大きいほど早く止まる）
       const decay = Math.exp(-dampingFactor * delta);
