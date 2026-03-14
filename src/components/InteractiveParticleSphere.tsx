@@ -28,6 +28,85 @@ interface Props {
   showBirthday: boolean;
 }
 
+// 花火を管理するコンポーネント
+function Fireworks() {
+  const [particles, setParticles] = useState<{ id: number; position: THREE.Vector3; velocity: THREE.Vector3; age: number; lifespan: number; color: string; size: number }[]>([]);
+  const lastSpawnTime = useRef(0);
+
+  const colors = ['#ff3366', '#33ccff', '#ffcc00', '#ffffff', '#ff99ff'];
+
+  useFrame((state, delta) => {
+    // ランダムな間隔で花火を打ち上げる
+    if (state.clock.elapsedTime - lastSpawnTime.current > 0.8 + Math.random() * 1.5) {
+      lastSpawnTime.current = state.clock.elapsedTime;
+      
+      // 打ち上げ位置（地球の近くの空間）
+      const originX = (Math.random() - 0.5) * 40;
+      const originY = (Math.random() - 0.5) * 30 + 10; // 少し上の方
+      const originZ = (Math.random() - 0.5) * 40;
+      const origin = new THREE.Vector3(originX, originY, originZ);
+      
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      const numParticles = 30 + Math.floor(Math.random() * 30); // 30〜60個のパーティクル
+      
+      const newParticles = [];
+      for (let i = 0; i < numParticles; i++) {
+        // 球状に広がるランダムな速度ベクトル
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos((Math.random() * 2) - 1);
+        const speed = 5 + Math.random() * 15;
+        
+        const velocity = new THREE.Vector3(
+          Math.sin(phi) * Math.cos(theta) * speed,
+          Math.sin(phi) * Math.sin(theta) * speed,
+          Math.cos(phi) * speed
+        );
+
+        newParticles.push({
+          id: Math.random(),
+          position: origin.clone(),
+          velocity,
+          age: 0,
+          lifespan: 1.0 + Math.random() * 1.0, // 1.0〜2.0秒
+          color,
+          size: 0.1 + Math.random() * 0.2
+        });
+      }
+      
+      setParticles(prev => [...prev, ...newParticles]);
+    }
+
+    // パーティクルの更新
+    setParticles(prev => {
+      const nextParticles = prev.map(p => {
+        // 重力による落下と空気抵抗
+        const newVel = p.velocity.clone();
+        newVel.y -= 9.8 * delta; // 重力
+        newVel.multiplyScalar(0.95); // 空気抵抗
+
+        const newPos = p.position.clone().addScaledVector(newVel, delta);
+        return { ...p, position: newPos, velocity: newVel, age: p.age + delta };
+      }).filter(p => p.age <= p.lifespan);
+      return nextParticles;
+    });
+  });
+
+  return (
+    <group>
+      {particles.map(p => (
+        <mesh key={p.id} position={p.position}>
+          <sphereGeometry args={[p.size]} />
+          <meshBasicMaterial 
+            color={p.color} 
+            transparent 
+            opacity={Math.max(0, 1 - (p.age / p.lifespan))} // 徐々に消える
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 // 流れ星を管理するコンポーネント
 function ShootingStars() {
   const [stars, setStars] = useState<{ id: number, position: THREE.Vector3, velocity: THREE.Vector3, age: number, lifespan: number, color: string }[]>([]);
@@ -246,6 +325,9 @@ export default function InteractiveParticleSphere({ mode, onVerticalDrag, onTime
 
       {/* 流星（シューティングスター）の演出 */}
       {showBirthday && <ShootingStars />}
+
+      {/* 花火の演出 */}
+      {showBirthday && <Fireworks />}
 
       {/* 空間全体を漂う光の粒子（Sparkles） */}
       <Sparkles count={200} scale={50} size={10} speed={0.4} opacity={0.2} color="#ffffff" />

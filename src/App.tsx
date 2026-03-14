@@ -21,12 +21,14 @@ function AppContent({
   setDisplayTime,
   setShowBirthday,
   showBirthday,
+  setDaysUntil,
 }: {
   mode: 'rotation' | 'orbit';
   setMode: (m: 'rotation' | 'orbit') => void;
   setDisplayTime: (time: string) => void;
   setShowBirthday: (show: boolean) => void;
   showBirthday: boolean;
+  setDaysUntil: (days: number | null) => void;
 }) {
   const modeRef = useRef(mode);
   const zoomTarget = useRef(1); // 初期値を 1(公転モード) に変更
@@ -36,7 +38,7 @@ function AppContent({
   // 初期日付を現在時刻の半年前に設定する
   const initialDate = useMemo(() => {
     const date = new Date();
-    date.setMonth(date.getMonth() - 6);
+    date.setMonth(date.getMonth() - 3);
     return date;
   }, []);
 
@@ -122,8 +124,16 @@ function AppContent({
     
     const daysUntilBirthday = (thisYearBirthday.getTime() - currentDate.getTime()) / (24 * 60 * 60 * 1000);
 
+    // 誕生日までの残り日数を親コンポーネントに伝える（表示用）
+    // 1週間前から表示する
+    if (daysUntilBirthday > 0 && daysUntilBirthday <= 10) {
+      setDaysUntil(Math.ceil(daysUntilBirthday));
+    } else {
+      setDaysUntil(null);
+    }
+
     // 誕生日1週間前（7日以内）になったら強制的に自転モード（近距離）へズームイン
-    if (daysUntilBirthday > 0 && daysUntilBirthday <= 7) {
+    if (daysUntilBirthday > 0 && daysUntilBirthday <= 10) {
       zoomTarget.current = 0; // 自転モードへ
     }
 
@@ -174,6 +184,7 @@ export default function App() {
   const [mode, setMode] = useState<'rotation' | 'orbit'>('orbit');
   const [displayTime, setDisplayTime] = useState('');
   const [showBirthday, setShowBirthday] = useState(false);
+  const [daysUntil, setDaysUntil] = useState<number | null>(null);
 
   return (
     <div style={{ width: '100vw', height: '100vh', background: 'black', touchAction: 'none', position: 'relative', overflow: 'hidden' }}>
@@ -198,6 +209,29 @@ export default function App() {
         }}
       >
         {displayTime}
+      </div>
+
+      {/* 誕生日までのカウントダウン（1週間前から表示） */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '15%',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          color: 'rgba(255, 255, 255, 0.8)',
+          fontFamily: "'Courier New', Courier, monospace",
+          fontSize: '20px',
+          fontWeight: '300',
+          letterSpacing: '0.2em',
+          pointerEvents: 'none',
+          userSelect: 'none',
+          zIndex: 10,
+          opacity: (daysUntil !== null && !showBirthday) ? 1 : 0,
+          transition: 'opacity 0.5s ease-in-out',
+          textShadow: '0 0 10px rgba(255, 255, 255, 0.4)',
+        }}
+      >
+        {daysUntil !== null ? `BIRTHDAY IN ${daysUntil} DAY${daysUntil > 1 ? 'S' : ''}` : ''}
       </div>
 
       {/* 誕生日演出用のオーバーレイ */}
@@ -254,7 +288,14 @@ export default function App() {
       </style>
 
       <Canvas camera={{ position: [0, 5, 10] }}>
-        <AppContent mode={mode} setMode={setMode} setDisplayTime={setDisplayTime} setShowBirthday={setShowBirthday} showBirthday={showBirthday} />
+        <AppContent 
+          mode={mode} 
+          setMode={setMode} 
+          setDisplayTime={setDisplayTime} 
+          setShowBirthday={setShowBirthday} 
+          showBirthday={showBirthday} 
+          setDaysUntil={setDaysUntil}
+        />
       </Canvas>
     </div>
   );
