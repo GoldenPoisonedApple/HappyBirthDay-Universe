@@ -13,7 +13,6 @@ import {
   TARGET_INTERPOLATION_SPEED,
   ORBIT_MODE_THRESHOLD,
   DRAG_SENSITIVITY_VERTICAL,
-  ROTATION_TIME_SCALE,
   ORBIT_TIME_SCALE,
 } from './constants';
 
@@ -47,9 +46,13 @@ function AppContent() {
     earthPosition.current.copy(pos);
   };
 
-  // カメラの注視点を計算（ズームに応じて地球と太陽の間を補間）
-  const getTargetPosition = () => {
-    return earthPosition.current.clone().lerp(new THREE.Vector3(0, 0, 0), zoom.current);
+  // 地球の回転角度変化を処理
+  const handleRotationChange = (deltaRotation: number) => {
+    // 自転1回転（2πラジアン）で1日進む
+    const daysPerRotation = 1;
+    const msPerDay = 24 * 60 * 60 * 1000; // 1日のミリ秒
+    const deltaMs = (deltaRotation / (2 * Math.PI)) * daysPerRotation * msPerDay;
+    simulatedTimeRef.current = new Date(simulatedTimeRef.current.getTime() + deltaMs);
   };
 
   // 日付表示フォーマット（YYYY-MM-DD HH:MM）
@@ -75,7 +78,7 @@ function AppContent() {
     zoom.current += (zoomTarget.current - zoom.current) * Math.min(1, delta * ZOOM_INTERPOLATION_SPEED);
 
     // 注視点のスムーズ移動
-    targetPosition.current.copy(getTargetPosition());
+    targetPosition.current.copy(earthPosition.current.clone().lerp(new THREE.Vector3(0, 0, 0), zoom.current));
     currentTarget.current.lerp(targetPosition.current, Math.min(1, delta * TARGET_INTERPOLATION_SPEED));
 
     // カメラ距離の補間
@@ -90,14 +93,16 @@ function AppContent() {
       setMode(nextMode);
     }
 
-    // 日付をモードに応じて進める（自転: 1秒=1時間、公転: 1秒=1日）
-    const timeScale = modeRef.current === 'rotation' ? ROTATION_TIME_SCALE : ORBIT_TIME_SCALE;
-    const deltaMs = delta * 1000 * timeScale;
-    simulatedTimeRef.current = new Date(simulatedTimeRef.current.getTime() + deltaMs);
+    // 日付をモードに応じて進める（自転: ドラッグ/回転に基づく、公転: 一定速度）
+    if (modeRef.current === 'orbit') {
+      const timeScale = ORBIT_TIME_SCALE;
+      const deltaMs = delta * 1000 * timeScale;
+      simulatedTimeRef.current = new Date(simulatedTimeRef.current.getTime() + deltaMs);
+    }
 
     // 表示更新は0.2秒ごとに行う
     timeAccumulator.current += delta;
-    if (timeAccumulator.current >= 0.2) {
+    if (timeAccumulator.current >= 0.05) {
       timeAccumulator.current = 0;
       setDisplayTime(formatDate(simulatedTimeRef.current));
     }
@@ -127,6 +132,7 @@ function AppContent() {
         mode={mode}
         onVerticalDrag={handleVerticalDrag}
         onEarthPositionChange={handleEarthPositionChange}
+        onRotationChange={handleRotationChange}
       />
     </>
   );

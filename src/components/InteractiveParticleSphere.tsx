@@ -24,10 +24,11 @@ interface Props {
   mode: 'rotation' | 'orbit';
   onVerticalDrag: (deltaY: number) => void;
   onEarthPositionChange: (pos: THREE.Vector3) => void;
+  onRotationChange?: (deltaRotation: number) => void;
 }
 
 // 地球をパーティクルで表現し、インタラクティブな操作を提供するメインコンポーネント
-export default function InteractiveParticleSphere({ mode, onVerticalDrag, onEarthPositionChange }: Props) {
+export default function InteractiveParticleSphere({ mode, onVerticalDrag, onEarthPositionChange, onRotationChange }: Props) {
   const rotationGroupRef = useRef<THREE.Group>(null);
   const orbitGroupRef = useRef<THREE.Group>(null);
   const orbitAngleRef = useRef(0);
@@ -47,7 +48,8 @@ export default function InteractiveParticleSphere({ mode, onVerticalDrag, onEart
   // 物理シミュレーションフックを使用
   const { setAngularVelocity, resetAngularVelocity, setIsDragging } = usePhysicsSimulation(
     rotationGroupRef,
-    mode
+    mode,
+    onRotationChange
   );
 
   // ドラッグ開始時の処理

@@ -14,10 +14,12 @@ export type PhysicsMode = 'rotation' | 'orbit';
 // 回転運動の物理シミュレーションを提供するフック
 export function usePhysicsSimulation(
   rotationGroupRef: React.RefObject<THREE.Group | null>,
-  mode: PhysicsMode
+  mode: PhysicsMode,
+  onRotationChange?: (rotationY: number) => void
 ) {
   const angularVelocity = useRef({ x: 0, y: 0 });
   const isDragging = useRef(false);
+  const previousRotationY = useRef(0);
 
   // 毎フレームの物理更新
   useFrame((_, delta: number) => {
@@ -26,6 +28,16 @@ export function usePhysicsSimulation(
     // 現在の角速度をオブジェクトの回転に加算（オイラー積分）
     rotationGroupRef.current.rotation.x += angularVelocity.current.x;
     rotationGroupRef.current.rotation.y += angularVelocity.current.y;
+
+    // 回転角度の変化を通知（自転モードのみ）
+    if (mode === 'rotation' && onRotationChange) {
+      const currentRotationY = rotationGroupRef.current.rotation.y;
+      const deltaRotation = currentRotationY - previousRotationY.current;
+      if (Math.abs(deltaRotation) > 0) {
+        onRotationChange(deltaRotation);
+      }
+      previousRotationY.current = currentRotationY;
+    }
 
     // 自転モードのみ、減衰や定常回転を行う
     if (mode === 'rotation' && !isDragging.current) {
