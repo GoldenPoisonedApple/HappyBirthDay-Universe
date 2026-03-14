@@ -1,5 +1,3 @@
-// アプリケーション全体で使用する定数定義ファイル
-// 物理定数、カメラ設定、ジオメトリパラメータなどを一元管理
 import * as THREE from 'three';
 
 // 地球の軸傾斜角度（ラジアン）
@@ -23,21 +21,23 @@ export const EARTH_RADIUS_ORBIT = 1.2;         // 公転モード時の地球半
 // 公転軌道設定
 export const ORBIT_RADIUS = 18;                // 公転軌道の半径
 
-// 公転物理設定
-export const ORBIT_VELOCITY_DECAY_FACTOR = 2.0; // 公転速度の減衰係数
-export const MIN_ORBIT_VELOCITY = 0.0001;      // 最低公転速度
-export const SELF_ROTATION_RATIO = 365;        // 自転と公転の速度比（1公転 = 365自転）
-
 // ドラッグ感度設定
-export const DRAG_SENSITIVITY_HORIZONTAL = 0.005;  // 水平ドラッグの感度
 export const DRAG_SENSITIVITY_VERTICAL = 0.0015;   // 垂直ドラッグの感度
-export const DRAG_SENSITIVITY_ORBIT = 0.002;      // 公転速度調整のドラッグ感度
 
-// 物理シミュレーション設定
-export const DAMPING_FACTOR = 5.0;             // 回転減衰係数
-export const CONSTANT_ROTATION_SPEED = 0.01;   // 定常回転速度
-export const VELOCITY_THRESHOLD = 0.0001;      // 速度の閾値（これ以下は0とみなす）
+// 時間シミュレーション設定
+export const SECONDS_PER_DAY = 86400;          // 1日の秒数
+export const SECONDS_PER_YEAR = 31556952;      // 1年の秒数 (365.2425日)
+
+// 定常速度（現実の1秒あたり、シミュレーション内で何秒進むか）
+export const BASE_TIME_SPEED_ROTATION = SECONDS_PER_DAY / 8; // 8秒で1日進む
+export const BASE_TIME_SPEED_ORBIT = SECONDS_PER_YEAR / 150;  // 15秒で1年進む
+
+// ドラッグ感度（1ピクセルのドラッグで進むシミュレーション秒数）
+export const DRAG_TIME_SENSITIVITY_ROTATION = SECONDS_PER_DAY / 2000; // 200pxドラッグで1日
+export const DRAG_TIME_SENSITIVITY_ORBIT = SECONDS_PER_YEAR / 20000;   // 200pxドラッグで1年
+
+export const DAMPING_FACTOR = 5.0;             // 慣性の減衰係数
 
 // ジオメトリ設定
-export const POINTS_COUNT = 1000;              // 球面上に配置するパーティクル数
-export const AXIS_LINE_MULTIPLIER = 1.2;       // 軸線の長さ倍率
+export const POINTS_COUNT = 2000;             // 球体上のパーティクル数
+export const AXIS_LINE_MULTIPLIER = 1.2;      // 軸線の長さ倍率
