@@ -29,8 +29,12 @@ function AppContent({
   const zoom = useRef(1); // 現在のズーム値も 1 に初期化
   const { camera } = useThree();
 
-  // 初期日付
-  const initialDate = useMemo(() => new Date(), []);
+  // 初期日付を現在時刻の半年前に設定する
+  const initialDate = useMemo(() => {
+    const date = new Date();
+    date.setMonth(date.getMonth() - 6);
+    return date;
+  }, []);
 
   // 地球のワールド座標を外部から受け取る
   const earthPosition = useRef(new THREE.Vector3(0, 0, 0));

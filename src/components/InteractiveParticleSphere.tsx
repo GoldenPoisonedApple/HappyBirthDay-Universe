@@ -91,14 +91,16 @@ export default function InteractiveParticleSphere({ mode, onVerticalDrag, onTime
     currentEarthRadius.current += (targetEarthRadius - currentEarthRadius.current) * Math.min(1, delta * 6);
     currentOrbitRadius.current += (targetOrbitRadius - currentOrbitRadius.current) * Math.min(1, delta * 6);
 
-    const currentSimulatedSeconds = simulatedSeconds.current;
+    // 初期状態（半年前）が -π (180度) の位置から始まるように、シミュレーション時間に半年分の秒数をオフセットとして加える
+    const HALF_YEAR_SECONDS = SECONDS_PER_YEAR / 2;
+    const effectiveSimulatedSeconds = simulatedSeconds.current + HALF_YEAR_SECONDS;
 
     // 自転角度：1日(SECONDS_PER_DAY)で2π回転
     // 地球は西から東へ自転するので、Y軸周りに正の回転
-    const rotationAngle = (currentSimulatedSeconds % SECONDS_PER_DAY) / SECONDS_PER_DAY * Math.PI * 2;
+    const rotationAngle = (effectiveSimulatedSeconds % SECONDS_PER_DAY) / SECONDS_PER_DAY * Math.PI * 2;
     
     // 公転角度：1年(SECONDS_PER_YEAR)で2π回転
-    const orbitAngle = (currentSimulatedSeconds / SECONDS_PER_YEAR) * Math.PI * 2;
+    const orbitAngle = (effectiveSimulatedSeconds / SECONDS_PER_YEAR) * Math.PI * 2;
 
     // 惑星の位置更新（再レンダリングせずにRefを直接操作して軽量化）
     if (mode === 'orbit') {
