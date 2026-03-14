@@ -2,7 +2,6 @@
 // 地球のパーティクル表示、回転/公転アニメーション、ドラッグ操作を管理
 import { useRef, useMemo, useCallback } from 'react';
 import * as THREE from 'three';
-import '@react-three/fiber';
 import { useFrame } from '@react-three/fiber';
 import { TILT_ANGLE } from '../constants';
 import { createParticleSphereGeometry, createAxisLineGeometry } from '../utils/geometry';
@@ -31,15 +30,11 @@ export default function InteractiveParticleSphere({ mode, onVerticalDrag, onRota
   const orbitAngleRef = useRef(0);
   const earthWorldPosition = useRef(new THREE.Vector3());
 
-  // モードに応じて地球の半径を変更
-  const earthRadius = mode === 'orbit' ? EARTH_RADIUS_ORBIT : EARTH_RADIUS_ROTATION;
-  const orbitRadius = mode === 'orbit' ? ORBIT_RADIUS : 0;
-
-  // パーティクルと軸線のジオメトリをメモ化
+  // ジオメトリを共通化（半径1で作成し、スケールで調整）
   const { pointsGeometry, lineGeometry } = useMemo(() => ({
-    pointsGeometry: createParticleSphereGeometry(earthRadius, POINTS_COUNT),
-    lineGeometry: createAxisLineGeometry(earthRadius),
-  }), [earthRadius]);
+    pointsGeometry: createParticleSphereGeometry(1, POINTS_COUNT),
+    lineGeometry: createAxisLineGeometry(1),
+  }), []);
 
   // 物理シミュレーションフックを使用
   const { setAngularVelocity, resetAngularVelocity, setIsDragging, angularVelocity } = usePhysicsSimulation(
@@ -77,16 +72,35 @@ export default function InteractiveParticleSphere({ mode, onVerticalDrag, onRota
   // ポインタドラッグフックを使用
   usePointerDrag(handleDragStart, handleDragMove, handleDragEnd);
 
+  // モードに応じた目標値
+  const targetEarthRadius = mode === 'orbit' ? EARTH_RADIUS_ORBIT : EARTH_RADIUS_ROTATION;
+  const targetOrbitRadius = mode === 'orbit' ? ORBIT_RADIUS : 0;
+
+  // 現在の値を保持するRef
+  const currentEarthRadius = useRef(EARTH_RADIUS_ROTATION);
+  const currentOrbitRadius = useRef(0);
+
   // 公転アニメーションと位置更新
   useFrame((_, delta) => {
-    if (mode === 'orbit' && orbitGroupRef.current) {
-      // 自転速度に基づいて公転速度を計算（1公転 = 365自転）
-      const currentRotationSpeed = angularVelocity.current.y;
-      const orbitSpeed = currentRotationSpeed / SELF_ROTATION_RATIO;
+    // スムーズな遷移のための補間（1秒間に指定のスピードで近づく）
+    currentEarthRadius.current += (targetEarthRadius - currentEarthRadius.current) * Math.min(1, delta * 6);
+    currentOrbitRadius.current += (targetOrbitRadius - currentOrbitRadius.current) * Math.min(1, delta * 6);
 
-      orbitAngleRef.current += orbitSpeed * delta;
-      orbitGroupRef.current.position.x = Math.cos(orbitAngleRef.current) * orbitRadius;
-      orbitGroupRef.current.position.z = Math.sin(orbitAngleRef.current) * orbitRadius;
+    if (orbitGroupRef.current) {
+      if (mode === 'orbit' || currentOrbitRadius.current > 0.1) {
+        // 自転速度に基づいて公転速度を計算（1公転 = 365自転）
+        const currentRotationSpeed = angularVelocity.current.y;
+        const orbitSpeed = currentRotationSpeed / SELF_ROTATION_RATIO;
+
+        orbitAngleRef.current += orbitSpeed * delta;
+      }
+      
+      orbitGroupRef.current.position.x = Math.cos(orbitAngleRef.current) * currentOrbitRadius.current;
+      orbitGroupRef.current.position.z = Math.sin(orbitAngleRef.current) * currentOrbitRadius.current;
+    }
+
+    if (rotationGroupRef.current) {
+      rotationGroupRef.current.scale.setScalar(currentEarthRadius.current);
     }
 
     // 毎フレーム、地球位置を通知
@@ -95,9 +109,6 @@ export default function InteractiveParticleSphere({ mode, onVerticalDrag, onRota
       onEarthPositionChange(earthWorldPosition.current);
     }
   });
-
-  // ポインタドラッグフックを使用
-  usePointerDrag(handleDragStart, handleDragMove, handleDragEnd);
 
   return (
     <>
@@ -110,7 +121,7 @@ export default function InteractiveParticleSphere({ mode, onVerticalDrag, onRota
       )}
 
       {/* 地球 */}
-      <group ref={orbitGroupRef} position={mode === 'orbit' ? [10, 0, 0] : [0, 0, 0]}>
+      <group ref={orbitGroupRef} position={[0, 0, 0]}>
         <group rotation={[0, 0, TILT_ANGLE]}>
           <group ref={rotationGroupRef}>
             <points geometry={pointsGeometry}>

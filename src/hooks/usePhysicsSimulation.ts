@@ -1,6 +1,6 @@
 // 物理シミュレーションを管理するカスタムフック
 // オブジェクトの回転運動をシミュレートし、減衰や定常回転を適用
-import { useRef } from 'react';
+import { useRef, useCallback } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import {
@@ -71,19 +71,19 @@ export function usePhysicsSimulation(
   });
 
   // 角速度を設定
-  const setAngularVelocity = (x: number, y: number) => {
+  const setAngularVelocity = useCallback((x: number, y: number) => {
     angularVelocity.current = { x, y };
-  };
+  }, []);
 
   // 角速度をリセット
-  const resetAngularVelocity = () => {
+  const resetAngularVelocity = useCallback(() => {
     angularVelocity.current = { x: 0, y: 0 };
-  };
+  }, []);
 
   // ドラッグ状態を設定
-  const setIsDragging = (dragging: boolean) => {
+  const setIsDragging = useCallback((dragging: boolean) => {
     isDragging.current = dragging;
-  };
+  }, []);
 
   return {
     setAngularVelocity,

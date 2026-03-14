@@ -2,9 +2,8 @@
 // 3Dシーン全体を管理し、カメラ制御とモード切替を行う
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
-import { useRef, useState } from 'react';
+import { useRef, useState, useCallback, useMemo } from 'react';
 import * as THREE from 'three';
-import '@react-three/fiber';
 import InteractiveParticleSphere from './components/InteractiveParticleSphere';
 import {
   CLOSE_OFFSET,
@@ -26,7 +25,7 @@ function AppContent() {
   const { camera } = useThree();
 
   // 初期日付
-  const initialDate = new Date();
+  const initialDate = useMemo(() => new Date(), []);
 
   // 地球のワールド座標を外部から受け取る
   const earthPosition = useRef(new THREE.Vector3(0, 0, 0));
@@ -39,27 +38,27 @@ function AppContent() {
   const currentOffset = useRef(new THREE.Vector3().copy(CLOSE_OFFSET));
 
   // 垂直ドラッグでズームを調整
-  const handleVerticalDrag = (deltaY: number) => {
+  const handleVerticalDrag = useCallback((deltaY: number) => {
     zoomTarget.current = Math.max(0, Math.min(1, zoomTarget.current + deltaY * DRAG_SENSITIVITY_VERTICAL));
-  };
+  }, []);
 
   // 現在の自転角度
   const currentRotationAngle = useRef(0);
 
   // 地球の回転角度変化を処理（両モード共通）
-  const handleRotationChange = (deltaRotation: number) => {
+  const handleRotationChange = useCallback((deltaRotation: number) => {
     currentRotationAngle.current += deltaRotation;
-  };
+  }, []);
 
   // 地球の位置変更を処理
-  const handleEarthPositionChange = (pos: THREE.Vector3) => {
+  const handleEarthPositionChange = useCallback((pos: THREE.Vector3) => {
     earthPosition.current.copy(pos);
-  };
+  }, []);
 
   // 地球の公転角度変化を処理（削除：自転に基づいて時間を進めるため）
 
   // 日付表示フォーマット（YYYY-MM-DD HH:MM）
-  function formatDate(rotationAngle: number) {
+  const formatDate = useCallback((rotationAngle: number) => {
     // 自転角度から時間を計算
     const secondsPerDay = 24 * 60 * 60;
     const simulatedSeconds = (rotationAngle / (2 * Math.PI)) * secondsPerDay;
@@ -71,7 +70,7 @@ function AppContent() {
     const hours = pad(date.getHours());
     const minutes = pad(date.getMinutes());
     return `${year}-${month}-${day} ${hours}:${minutes}`;
-  }
+  }, [initialDate]);
 
   // シミュレーション内の日時管理
   const [displayTime, setDisplayTime] = useState(() => formatDate(0));
@@ -103,7 +102,7 @@ function AppContent() {
 
     // 表示更新は0.2秒ごとに行う
     timeAccumulator.current += delta;
-    if (timeAccumulator.current >= 0.05) {
+    if (timeAccumulator.current >= 0.2) {
       timeAccumulator.current = 0;
       setDisplayTime(formatDate(currentRotationAngle.current));
     }
