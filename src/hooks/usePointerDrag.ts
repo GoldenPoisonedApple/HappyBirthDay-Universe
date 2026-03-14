@@ -1,3 +1,5 @@
+// ポインタドラッグ操作を管理するカスタムフック
+// マウスやタッチのドラッグイベントを処理し、コールバック関数を呼び出す
 import { useRef, useEffect } from 'react';
 import { useThree } from '@react-three/fiber';
 

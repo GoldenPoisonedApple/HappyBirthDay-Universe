@@ -1,9 +1,17 @@
+// 物理シミュレーションを管理するカスタムフック
+// オブジェクトの回転運動をシミュレートし、減衰や定常回転を適用
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import {
+  DAMPING_FACTOR,
+  CONSTANT_ROTATION_SPEED,
+  VELOCITY_THRESHOLD,
+} from '../constants';
 
 export type PhysicsMode = 'rotation' | 'orbit';
 
+// 回転運動の物理シミュレーションを提供するフック
 export function usePhysicsSimulation(
   rotationGroupRef: React.RefObject<THREE.Group | null>,
   mode: PhysicsMode
@@ -11,6 +19,7 @@ export function usePhysicsSimulation(
   const angularVelocity = useRef({ x: 0, y: 0 });
   const isDragging = useRef(false);
 
+  // 毎フレームの物理更新
   useFrame((_, delta: number) => {
     if (!rotationGroupRef.current) return;
 
@@ -18,35 +27,41 @@ export function usePhysicsSimulation(
     rotationGroupRef.current.rotation.x += angularVelocity.current.x;
     rotationGroupRef.current.rotation.y += angularVelocity.current.y;
 
-    // rotationモードのみ、減衰や定常回転を行う
+    // 自転モードのみ、減衰や定常回転を行う
     if (mode === 'rotation' && !isDragging.current) {
-      // フレームレート非依存の指数減衰 (Exponential Decay)
-      const dampingFactor = 5.0; // 減衰係数（大きいほど早く止まる）
-      const decay = Math.exp(-dampingFactor * delta);
+      // フレームレート非依存の指数減衰
+      const decay = Math.exp(-DAMPING_FACTOR * delta);
 
       angularVelocity.current.x *= decay;
       angularVelocity.current.y *= decay;
 
       // 速度が微小になったら0に丸め、無駄な浮動小数点演算を停止する
-      if (Math.abs(angularVelocity.current.x) < 0.0001) angularVelocity.current.x = 0;
-      if (Math.abs(angularVelocity.current.y) < 0.0001) angularVelocity.current.y = 0;
+      if (Math.abs(angularVelocity.current.x) < VELOCITY_THRESHOLD) angularVelocity.current.x = 0;
+      if (Math.abs(angularVelocity.current.y) < VELOCITY_THRESHOLD) angularVelocity.current.y = 0;
 
       // 常に少し回転させるための一定の角速度を加算
-      angularVelocity.current.y += 0.01 * delta;
+      angularVelocity.current.y += CONSTANT_ROTATION_SPEED * delta;
     }
   });
 
+  // 角速度を設定
   const setAngularVelocity = (x: number, y: number) => {
     angularVelocity.current = { x, y };
   };
 
+  // 角速度をリセット
   const resetAngularVelocity = () => {
     angularVelocity.current = { x: 0, y: 0 };
   };
 
+  // ドラッグ状態を設定
   const setIsDragging = (dragging: boolean) => {
     isDragging.current = dragging;
   };
 
-  return { setAngularVelocity, resetAngularVelocity, setIsDragging };
+  return {
+    setAngularVelocity,
+    resetAngularVelocity,
+    setIsDragging,
+  };
 }
