@@ -1,1 +1,0 @@
-export const TILT_ANGLE = -23.4 * (Math.PI / 180);
