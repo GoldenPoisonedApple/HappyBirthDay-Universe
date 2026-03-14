@@ -1,94 +1,66 @@
-// 物理シミュレーションを管理するカスタムフック
-// オブジェクトの回転運動をシミュレートし、減衰や定常回転を適用
 import { useRef, useCallback } from 'react';
 import { useFrame } from '@react-three/fiber';
-import * as THREE from 'three';
 import {
+  BASE_TIME_SPEED_ROTATION,
+  BASE_TIME_SPEED_ORBIT,
   DAMPING_FACTOR,
-  CONSTANT_ROTATION_SPEED,
-  VELOCITY_THRESHOLD,
-  ORBIT_ROTATION_SPEED,
 } from '../constants';
 
 export type PhysicsMode = 'rotation' | 'orbit';
 
-// 回転運動の物理シミュレーションを提供するフック
-export function usePhysicsSimulation(
-  rotationGroupRef: React.RefObject<THREE.Group | null>,
+// 物理シミュレーションではなく、絶対的な「時間（Time）」をシミュレーションするフック
+export function useTimeSimulation(
   mode: PhysicsMode,
-  onRotationChange?: (rotationY: number) => void
+  onTimeUpdate: (simulatedSeconds: number) => void
 ) {
-  const angularVelocity = useRef({ x: 0, y: 0 });
+  const simulatedSeconds = useRef(0);
+  const timeVelocity = useRef(0); // ドラッグによる追加の速度（慣性用）
   const isDragging = useRef(false);
-  const previousRotationY = useRef(0);
 
-  // 毎フレームの物理更新
   useFrame((_, delta: number) => {
-    if (!rotationGroupRef.current) return;
+    const baseSpeed = mode === 'orbit' ? BASE_TIME_SPEED_ORBIT : BASE_TIME_SPEED_ROTATION;
 
-    // 現在の角速度をオブジェクトの回転に加算（オイラー積分）
-    rotationGroupRef.current.rotation.x += angularVelocity.current.x;
-    rotationGroupRef.current.rotation.y += angularVelocity.current.y;
-
-    // 回転角度の変化を通知（両モード共通）
-    if (onRotationChange) {
-      const currentRotationY = rotationGroupRef.current.rotation.y;
-      const deltaRotation = currentRotationY - previousRotationY.current;
-      if (Math.abs(deltaRotation) > 0) {
-        onRotationChange(deltaRotation);
+    if (!isDragging.current) {
+      // ドラッグしていない時は慣性を減衰させる
+      timeVelocity.current *= Math.exp(-DAMPING_FACTOR * delta);
+      
+      // 速度が微小になったらゼロにする
+      if (Math.abs(timeVelocity.current) < 1) {
+        timeVelocity.current = 0;
       }
-      previousRotationY.current = currentRotationY;
+      
+      // 慣性による時間の進行
+      simulatedSeconds.current += timeVelocity.current * delta;
     }
 
-    // 自転モードのみ、減衰や定常回転を行う
-    if (mode === 'rotation' && !isDragging.current) {
-      // フレームレート非依存の指数減衰
-      const decay = Math.exp(-DAMPING_FACTOR * delta);
+    // 常に定常速度で時間は進む
+    simulatedSeconds.current += baseSpeed * delta;
 
-      angularVelocity.current.x *= decay;
-      angularVelocity.current.y *= decay;
-
-      // 速度が微小になったら0に丸め、無駄な浮動小数点演算を停止する
-      if (Math.abs(angularVelocity.current.x) < VELOCITY_THRESHOLD) angularVelocity.current.x = 0;
-      if (Math.abs(angularVelocity.current.y) < VELOCITY_THRESHOLD) angularVelocity.current.y = 0;
-
-      // 常に少し回転させるための一定の角速度を加算
-      angularVelocity.current.y += CONSTANT_ROTATION_SPEED * delta;
-    } else if (mode === 'orbit' && !isDragging.current) {
-      // 公転モードでもドラッグしていないときは減衰
-      const decay = Math.exp(-DAMPING_FACTOR * delta);
-
-      angularVelocity.current.x *= decay;
-      angularVelocity.current.y *= decay;
-
-      // 速度が微小になったら0に丸め、無駄な浮動小数点演算を停止する
-      if (Math.abs(angularVelocity.current.x) < VELOCITY_THRESHOLD) angularVelocity.current.x = 0;
-      if (Math.abs(angularVelocity.current.y) < VELOCITY_THRESHOLD) angularVelocity.current.y = 0;
-
-      // 公転モードでは定常回転を加算
-      angularVelocity.current.y += ORBIT_ROTATION_SPEED * delta;
-    }
+    onTimeUpdate(simulatedSeconds.current);
   });
 
-  // 角速度を設定
-  const setAngularVelocity = useCallback((x: number, y: number) => {
-    angularVelocity.current = { x, y };
+  const addSimulatedTime = useCallback((amountSeconds: number, deltaTime: number) => {
+    simulatedSeconds.current += amountSeconds;
+    
+    // ドラッグ終了後の慣性のために、現在のドラッグ速度を計算して保持
+    if (deltaTime > 0) {
+      // 急激な速度変化を和らげるための簡単なスムージング
+      const instantaneousVelocity = amountSeconds / deltaTime;
+      timeVelocity.current = timeVelocity.current * 0.5 + instantaneousVelocity * 0.5;
+    }
   }, []);
 
-  // 角速度をリセット
-  const resetAngularVelocity = useCallback(() => {
-    angularVelocity.current = { x: 0, y: 0 };
-  }, []);
-
-  // ドラッグ状態を設定
   const setIsDragging = useCallback((dragging: boolean) => {
     isDragging.current = dragging;
+    if (dragging) {
+      // ドラッグ開始時に慣性をリセット
+      timeVelocity.current = 0;
+    }
   }, []);
 
   return {
-    setAngularVelocity,
-    resetAngularVelocity,
+    addSimulatedTime,
     setIsDragging,
-    angularVelocity,
+    simulatedSeconds,
   };
 }

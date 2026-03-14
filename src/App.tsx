@@ -42,12 +42,12 @@ function AppContent() {
     zoomTarget.current = Math.max(0, Math.min(1, zoomTarget.current + deltaY * DRAG_SENSITIVITY_VERTICAL));
   }, []);
 
-  // 現在の自転角度
-  const currentRotationAngle = useRef(0);
+  // シミュレーション時間（秒）
+  const currentSimulatedSeconds = useRef(0);
 
-  // 地球の回転角度変化を処理（両モード共通）
-  const handleRotationChange = useCallback((deltaRotation: number) => {
-    currentRotationAngle.current += deltaRotation;
+  // 時間の更新を処理
+  const handleTimeUpdate = useCallback((simulatedSeconds: number) => {
+    currentSimulatedSeconds.current = simulatedSeconds;
   }, []);
 
   // 地球の位置変更を処理
@@ -58,10 +58,8 @@ function AppContent() {
   // 地球の公転角度変化を処理（削除：自転に基づいて時間を進めるため）
 
   // 日付表示フォーマット（YYYY-MM-DD HH:MM）
-  const formatDate = useCallback((rotationAngle: number) => {
-    // 自転角度から時間を計算
-    const secondsPerDay = 24 * 60 * 60;
-    const simulatedSeconds = (rotationAngle / (2 * Math.PI)) * secondsPerDay;
+  const formatDate = useCallback((simulatedSeconds: number) => {
+    // シミュレーション秒数から時間を計算
     const date = new Date(initialDate.getTime() + simulatedSeconds * 1000);
     const pad = (n: number) => String(n).padStart(2, '0');
     const year = date.getFullYear();
@@ -100,11 +98,11 @@ function AppContent() {
     // 日付を自転角度に基づいて進める（両モード共通）
     // 自転1回転 = 1日、公転は自転に同期
 
-    // 表示更新は0.2秒ごとに行う
+    // 表示更新は0.05秒ごとに行う
     timeAccumulator.current += delta;
-    if (timeAccumulator.current >= 0.2) {
+    if (timeAccumulator.current >= 0.05) {
       timeAccumulator.current = 0;
-      setDisplayTime(formatDate(currentRotationAngle.current));
+      setDisplayTime(formatDate(currentSimulatedSeconds.current));
     }
   });
 
@@ -131,7 +129,7 @@ function AppContent() {
       <InteractiveParticleSphere
         mode={mode}
         onVerticalDrag={handleVerticalDrag}
-        onRotationChange={handleRotationChange}
+        onTimeUpdate={handleTimeUpdate}
         onEarthPositionChange={handleEarthPositionChange}
       />
     </>

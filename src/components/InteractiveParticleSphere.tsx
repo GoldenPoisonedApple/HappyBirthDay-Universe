@@ -6,28 +6,29 @@ import { useFrame } from '@react-three/fiber';
 import { TILT_ANGLE } from '../constants';
 import { createParticleSphereGeometry, createAxisLineGeometry } from '../utils/geometry';
 import { usePointerDrag } from '../hooks/usePointerDrag';
-import { usePhysicsSimulation } from '../hooks/usePhysicsSimulation';
+import { useTimeSimulation } from '../hooks/usePhysicsSimulation';
 import {
   EARTH_RADIUS_ROTATION,
   EARTH_RADIUS_ORBIT,
   ORBIT_RADIUS,
-  DRAG_SENSITIVITY_HORIZONTAL,
+  DRAG_TIME_SENSITIVITY_ROTATION,
+  DRAG_TIME_SENSITIVITY_ORBIT,
   POINTS_COUNT,
-  SELF_ROTATION_RATIO,
+  SECONDS_PER_DAY,
+  SECONDS_PER_YEAR,
 } from '../constants';
 
 interface Props {
   mode: 'rotation' | 'orbit';
   onVerticalDrag: (deltaY: number) => void;
-  onRotationChange?: (deltaRotation: number) => void;
+  onTimeUpdate: (simulatedSeconds: number) => void;
   onEarthPositionChange: (pos: THREE.Vector3) => void;
 }
 
 // 地球をパーティクルで表現し、インタラクティブな操作を提供するメインコンポーネント
-export default function InteractiveParticleSphere({ mode, onVerticalDrag, onRotationChange, onEarthPositionChange }: Props) {
+export default function InteractiveParticleSphere({ mode, onVerticalDrag, onTimeUpdate, onEarthPositionChange }: Props) {
   const rotationGroupRef = useRef<THREE.Group>(null);
   const orbitGroupRef = useRef<THREE.Group>(null);
-  const orbitAngleRef = useRef(0);
   const earthWorldPosition = useRef(new THREE.Vector3());
 
   // ジオメトリを共通化（半径1で作成し、スケールで調整）
@@ -37,31 +38,28 @@ export default function InteractiveParticleSphere({ mode, onVerticalDrag, onRota
   }), []);
 
   // 物理シミュレーションフックを使用
-  const { setAngularVelocity, resetAngularVelocity, setIsDragging, angularVelocity } = usePhysicsSimulation(
-    rotationGroupRef,
+  const { addSimulatedTime, setIsDragging, simulatedSeconds } = useTimeSimulation(
     mode,
-    onRotationChange
+    onTimeUpdate
   );
 
   // ドラッグ開始時の処理
   const handleDragStart = useCallback(() => {
-    resetAngularVelocity();
     setIsDragging(true);
-  }, [resetAngularVelocity, setIsDragging]);
+  }, [setIsDragging]);
 
   // ドラッグ中の処理（水平方向）
   const handleDragMove = useCallback(
-    (deltaX: number, deltaY: number) => {
-      if (mode === 'rotation') {
-        // 自転モード：ドラッグで回転速度を変更
-        setAngularVelocity(0, deltaX * DRAG_SENSITIVITY_HORIZONTAL);
-      } else {
-        // 公転モード：ドラッグで自転速度を調整（これが公転速度も決定）
-        setAngularVelocity(0, deltaX * DRAG_SENSITIVITY_HORIZONTAL);
-      }
+    (deltaX: number, deltaY: number, deltaTime: number) => {
+      // 横方向のドラッグで時間を進める（右ドラッグで未来へ）
+      const timeToAdd = mode === 'rotation' 
+        ? deltaX * DRAG_TIME_SENSITIVITY_ROTATION 
+        : deltaX * DRAG_TIME_SENSITIVITY_ORBIT;
+      
+      addSimulatedTime(timeToAdd, deltaTime);
       onVerticalDrag(deltaY);
     },
-    [setAngularVelocity, mode, onVerticalDrag]
+    [mode, addSimulatedTime, onVerticalDrag]
   );
 
   // ドラッグ終了時の処理
@@ -86,20 +84,23 @@ export default function InteractiveParticleSphere({ mode, onVerticalDrag, onRota
     currentEarthRadius.current += (targetEarthRadius - currentEarthRadius.current) * Math.min(1, delta * 6);
     currentOrbitRadius.current += (targetOrbitRadius - currentOrbitRadius.current) * Math.min(1, delta * 6);
 
-    if (orbitGroupRef.current) {
-      if (mode === 'orbit' || currentOrbitRadius.current > 0.1) {
-        // 自転速度に基づいて公転速度を計算（1公転 = 365自転）
-        const currentRotationSpeed = angularVelocity.current.y;
-        const orbitSpeed = currentRotationSpeed / SELF_ROTATION_RATIO;
+    const currentSimulatedSeconds = simulatedSeconds.current;
 
-        orbitAngleRef.current += orbitSpeed * delta;
-      }
-      
-      orbitGroupRef.current.position.x = Math.cos(orbitAngleRef.current) * currentOrbitRadius.current;
-      orbitGroupRef.current.position.z = Math.sin(orbitAngleRef.current) * currentOrbitRadius.current;
+    // 自転角度：1日(SECONDS_PER_DAY)で2π回転
+    // 地球は西から東へ自転するので、Y軸周りに正の回転
+    const rotationAngle = (currentSimulatedSeconds % SECONDS_PER_DAY) / SECONDS_PER_DAY * Math.PI * 2;
+    
+    // 公転角度：1年(SECONDS_PER_YEAR)で2π回転
+    const orbitAngle = (currentSimulatedSeconds % SECONDS_PER_YEAR) / SECONDS_PER_YEAR * Math.PI * 2;
+
+    if (orbitGroupRef.current) {
+      // 太陽を中心とした反時計回りの軌道（Z軸はマイナス方向が画面奥）
+      orbitGroupRef.current.position.x = Math.cos(orbitAngle) * currentOrbitRadius.current;
+      orbitGroupRef.current.position.z = -Math.sin(orbitAngle) * currentOrbitRadius.current;
     }
 
     if (rotationGroupRef.current) {
+      rotationGroupRef.current.rotation.y = rotationAngle;
       rotationGroupRef.current.scale.setScalar(currentEarthRadius.current);
     }
 
