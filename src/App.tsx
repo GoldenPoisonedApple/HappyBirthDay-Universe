@@ -25,8 +25,8 @@ function AppContent({
   setDisplayTime: (time: string) => void;
 }) {
   const modeRef = useRef(mode);
-  const zoomTarget = useRef(0); // 0 = 自転モード（近距離）, 1 = 公転モード（遠距離）
-  const zoom = useRef(0);
+  const zoomTarget = useRef(1); // 初期値を 1(公転モード) に変更
+  const zoom = useRef(1); // 現在のズーム値も 1 に初期化
   const { camera } = useThree();
 
   // 初期日付
@@ -128,7 +128,7 @@ function AppContent({
 // アプリのエントリーポイント
 // Canvasをセットアップして3Dシーンを表示
 export default function App() {
-  const [mode, setMode] = useState<'rotation' | 'orbit'>('rotation');
+  const [mode, setMode] = useState<'rotation' | 'orbit'>('orbit');
   const [displayTime, setDisplayTime] = useState('');
 
   return (

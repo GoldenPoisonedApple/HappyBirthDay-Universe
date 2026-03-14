@@ -76,8 +76,8 @@ export default function InteractiveParticleSphere({ mode, onVerticalDrag, onTime
   const targetOrbitRadius = mode === 'orbit' ? ORBIT_RADIUS : 0;
 
   // 現在の値を保持するRef
-  const currentEarthRadius = useRef(EARTH_RADIUS_ROTATION);
-  const currentOrbitRadius = useRef(0);
+  const currentEarthRadius = useRef(EARTH_RADIUS_ORBIT);
+  const currentOrbitRadius = useRef(ORBIT_RADIUS);
   
   // 惑星の位置を更新するためのRef
   const mercuryRef = useRef<THREE.Group>(null);
