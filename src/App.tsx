@@ -13,7 +13,6 @@ import {
   TARGET_INTERPOLATION_SPEED,
   ORBIT_MODE_THRESHOLD,
   DRAG_SENSITIVITY_VERTICAL,
-  ORBIT_TIME_SCALE,
 } from './constants';
 
 
@@ -55,6 +54,15 @@ function AppContent() {
     simulatedTimeRef.current = new Date(simulatedTimeRef.current.getTime() + deltaMs);
   };
 
+  // 地球の公転角度変化を処理
+  const handleOrbitChange = (deltaOrbit: number) => {
+    // 公転1回転（2πラジアン）で1年（365日）進む
+    const yearsPerOrbit = 1;
+    const msPerYear = 365 * 24 * 60 * 60 * 1000; // 1年のミリ秒（365日）
+    const deltaMs = (deltaOrbit / (2 * Math.PI)) * yearsPerOrbit * msPerYear;
+    simulatedTimeRef.current = new Date(simulatedTimeRef.current.getTime() + deltaMs);
+  };
+
   // 日付表示フォーマット（YYYY-MM-DD HH:MM）
   function formatDate(date: Date) {
     const pad = (n: number) => String(n).padStart(2, '0');
@@ -93,12 +101,8 @@ function AppContent() {
       setMode(nextMode);
     }
 
-    // 日付をモードに応じて進める（自転: ドラッグ/回転に基づく、公転: 一定速度）
-    if (modeRef.current === 'orbit') {
-      const timeScale = ORBIT_TIME_SCALE;
-      const deltaMs = delta * 1000 * timeScale;
-      simulatedTimeRef.current = new Date(simulatedTimeRef.current.getTime() + deltaMs);
-    }
+    // 日付をモードに応じて進める（自転: ドラッグ/回転に基づく、公転: 公転角度に基づく）
+    // 公転モードでは handleOrbitChange で進めるので、ここでは何もしない
 
     // 表示更新は0.2秒ごとに行う
     timeAccumulator.current += delta;
@@ -133,6 +137,7 @@ function AppContent() {
         onVerticalDrag={handleVerticalDrag}
         onEarthPositionChange={handleEarthPositionChange}
         onRotationChange={handleRotationChange}
+        onOrbitChange={handleOrbitChange}
       />
     </>
   );

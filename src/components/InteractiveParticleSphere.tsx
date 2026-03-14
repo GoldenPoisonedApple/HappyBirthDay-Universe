@@ -25,10 +25,11 @@ interface Props {
   onVerticalDrag: (deltaY: number) => void;
   onEarthPositionChange: (pos: THREE.Vector3) => void;
   onRotationChange?: (deltaRotation: number) => void;
+  onOrbitChange?: (deltaOrbit: number) => void;
 }
 
 // 地球をパーティクルで表現し、インタラクティブな操作を提供するメインコンポーネント
-export default function InteractiveParticleSphere({ mode, onVerticalDrag, onEarthPositionChange, onRotationChange }: Props) {
+export default function InteractiveParticleSphere({ mode, onVerticalDrag, onEarthPositionChange, onRotationChange, onOrbitChange }: Props) {
   const rotationGroupRef = useRef<THREE.Group>(null);
   const orbitGroupRef = useRef<THREE.Group>(null);
   const orbitAngleRef = useRef(0);
@@ -83,6 +84,8 @@ export default function InteractiveParticleSphere({ mode, onVerticalDrag, onEart
   // 公転アニメーションと位置更新
   useFrame((_, delta) => {
     if (mode === 'orbit' && orbitGroupRef.current) {
+      const previousOrbitAngle = orbitAngleRef.current;
+
       // 公転速度を徐々に減衰させ、ゆっくりとした公転になる
       orbitVelocityRef.current *= Math.exp(-ORBIT_VELOCITY_DECAY_FACTOR * delta);
       orbitVelocityRef.current += MIN_ORBIT_VELOCITY; // 最低公転速度を維持
@@ -90,6 +93,12 @@ export default function InteractiveParticleSphere({ mode, onVerticalDrag, onEart
       orbitAngleRef.current += orbitVelocityRef.current * delta;
       orbitGroupRef.current.position.x = Math.cos(orbitAngleRef.current) * orbitRadius;
       orbitGroupRef.current.position.z = Math.sin(orbitAngleRef.current) * orbitRadius;
+
+      // 公転角度の変化を通知
+      if (onOrbitChange) {
+        const deltaOrbit = orbitAngleRef.current - previousOrbitAngle;
+        onOrbitChange(deltaOrbit);
+      }
 
       // 自転（1公転 = 365自転）
       const selfRotationSpeed = orbitVelocityRef.current * SELF_ROTATION_RATIO;
