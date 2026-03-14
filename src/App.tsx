@@ -20,11 +20,13 @@ function AppContent({
   setMode,
   setDisplayTime,
   setShowBirthday,
+  showBirthday,
 }: {
   mode: 'rotation' | 'orbit';
   setMode: (m: 'rotation' | 'orbit') => void;
   setDisplayTime: (time: string) => void;
   setShowBirthday: (show: boolean) => void;
+  showBirthday: boolean;
 }) {
   const modeRef = useRef(mode);
   const zoomTarget = useRef(1); // 初期値を 1(公転モード) に変更
@@ -161,6 +163,7 @@ function AppContent({
       onVerticalDrag={handleVerticalDrag}
       onTimeUpdate={handleTimeUpdate}
       onEarthPositionChange={handleEarthPositionChange}
+      showBirthday={showBirthday}
     />
   );
 }
@@ -251,7 +254,7 @@ export default function App() {
       </style>
 
       <Canvas camera={{ position: [0, 5, 10] }}>
-        <AppContent mode={mode} setMode={setMode} setDisplayTime={setDisplayTime} setShowBirthday={setShowBirthday} />
+        <AppContent mode={mode} setMode={setMode} setDisplayTime={setDisplayTime} setShowBirthday={setShowBirthday} showBirthday={showBirthday} />
       </Canvas>
     </div>
   );

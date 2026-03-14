@@ -1,6 +1,6 @@
 // インタラクティブなパーティクル球コンポーネント
 // 地球のパーティクル表示、回転/公転アニメーション、ドラッグ操作を管理
-import { useRef, useMemo, useCallback } from 'react';
+import { useRef, useMemo, useCallback, useState } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { TILT_ANGLE } from '../constants';
@@ -18,17 +18,84 @@ import {
   SECONDS_PER_YEAR,
 } from '../constants';
 
-import { Stars } from '@react-three/drei';
+import { Stars, Sparkles, Trail } from '@react-three/drei';
 
 interface Props {
   mode: 'rotation' | 'orbit';
   onVerticalDrag: (deltaY: number) => void;
   onTimeUpdate: (simulatedSeconds: number) => void;
   onEarthPositionChange: (pos: THREE.Vector3) => void;
+  showBirthday: boolean;
+}
+
+// 流れ星を管理するコンポーネント
+function ShootingStars() {
+  const [stars, setStars] = useState<{ id: number, position: THREE.Vector3, velocity: THREE.Vector3, age: number, lifespan: number, color: string }[]>([]);
+  const lastSpawnTime = useRef(0);
+
+  // 流れ星の色のバリエーション（純白、青白、金など）
+  const starColors = ['#ffffff', '#ffffff', '#ffffff', '#ccffff', '#ffeeaa'];
+
+  useFrame((state, delta) => {
+    // ランダムに流れ星を生成 (毎秒平均2〜3個程度)
+    if (state.clock.elapsedTime - lastSpawnTime.current > 0.1) {
+      lastSpawnTime.current = state.clock.elapsedTime;
+      
+      if (Math.random() < 0.4) {
+        const startX = (Math.random() - 0.5) * 60 + 10;
+        const startY = (Math.random() - 0.5) * 40 + 20;
+        const startZ = (Math.random() - 0.5) * 60;
+        
+        const newStar = {
+          id: Math.random(),
+          position: new THREE.Vector3(startX, startY, startZ),
+          velocity: new THREE.Vector3(
+            -30 - Math.random() * 20, // 左へ速く流れる
+            -20 - Math.random() * 20, // 下へ速く流れる
+            (Math.random() - 0.5) * 10
+          ),
+          age: 0,
+          lifespan: Math.random() * 0.4 + 0.4, // 0.4〜0.8秒で消える
+          color: starColors[Math.floor(Math.random() * starColors.length)]
+        };
+        
+        setStars(prev => [...prev, newStar]);
+      }
+    }
+
+    // 流れ星の更新と削除
+    setStars(prev => {
+      const nextStars = prev.map(star => {
+        const newPos = star.position.clone().addScaledVector(star.velocity, delta);
+        return { ...star, position: newPos, age: star.age + delta };
+      }).filter(star => star.age <= star.lifespan);
+
+      return nextStars;
+    });
+  });
+
+  return (
+    <>
+      {stars.map(star => (
+        <Trail
+          key={star.id}
+          width={1.5} // 尾の太さ
+          length={4}  // 尾の長さ
+          color={new THREE.Color(star.color)} // 星の色
+          attenuation={(t) => t * t} // 先端に向かって細くなる
+        >
+          <mesh position={star.position}>
+            <sphereGeometry args={[0.05]} />
+            <meshBasicMaterial color={star.color} transparent opacity={1 - (star.age / star.lifespan)} />
+          </mesh>
+        </Trail>
+      ))}
+    </>
+  );
 }
 
 // 地球をパーティクルで表現し、インタラクティブな操作を提供するメインコンポーネント
-export default function InteractiveParticleSphere({ mode, onVerticalDrag, onTimeUpdate, onEarthPositionChange }: Props) {
+export default function InteractiveParticleSphere({ mode, onVerticalDrag, onTimeUpdate, onEarthPositionChange, showBirthday }: Props) {
   const rotationGroupRef = useRef<THREE.Group>(null);
   const orbitGroupRef = useRef<THREE.Group>(null);
 
@@ -84,9 +151,9 @@ export default function InteractiveParticleSphere({ mode, onVerticalDrag, onTime
   const venusRef = useRef<THREE.Group>(null);
   const marsRef = useRef<THREE.Group>(null);
 
-  // 公転アニメーションと位置更新
+  // 毎フレーム、地球位置を通知
   const earthWorldPosition = useMemo(() => new THREE.Vector3(), []);
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
     // スムーズな遷移のための補間（1秒間に指定のスピードで近づく）
     currentEarthRadius.current += (targetEarthRadius - currentEarthRadius.current) * Math.min(1, delta * 6);
     currentOrbitRadius.current += (targetOrbitRadius - currentOrbitRadius.current) * Math.min(1, delta * 6);
@@ -176,6 +243,12 @@ export default function InteractiveParticleSphere({ mode, onVerticalDrag, onTime
           </group>
         </>
       )}
+
+      {/* 流星（シューティングスター）の演出 */}
+      {showBirthday && <ShootingStars />}
+
+      {/* 空間全体を漂う光の粒子（Sparkles） */}
+      <Sparkles count={200} scale={50} size={10} speed={0.4} opacity={0.2} color="#ffffff" />
 
       {/* 地球 */}
       <group ref={orbitGroupRef} position={[0, 0, 0]}>
