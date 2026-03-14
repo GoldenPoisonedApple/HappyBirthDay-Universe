@@ -1,4 +1,7 @@
+// 3Dジオメトリ生成ユーティリティ
+// 球体のパーティクルや軸線などのジオメトリを作成する関数群
 import * as THREE from 'three';
+import { AXIS_LINE_MULTIPLIER } from '../constants';
 
 // 球面上にランダムに点を配置するジオメトリを作成
 export function createParticleSphereGeometry(radius: number, pointsCount: number) {
@@ -20,7 +23,10 @@ export function createParticleSphereGeometry(radius: number, pointsCount: number
 // 球の回転軸を示す線のジオメトリを作成
 export function createAxisLineGeometry(radius: number) {
   const line = new THREE.BufferGeometry();
-  const linePositions = new Float32Array([0, radius * 1.2, 0, 0, -radius * 1.2, 0]);
+  const linePositions = new Float32Array([
+    0, radius * AXIS_LINE_MULTIPLIER, 0,
+    0, -radius * AXIS_LINE_MULTIPLIER, 0
+  ]);
   line.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
 
   return line;
