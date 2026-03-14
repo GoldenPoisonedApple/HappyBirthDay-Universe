@@ -34,7 +34,7 @@ export const BASE_TIME_SPEED_ORBIT = SECONDS_PER_YEAR / 150;  // 15秒で1年進
 
 // ドラッグ感度（1ピクセルのドラッグで進むシミュレーション秒数）
 export const DRAG_TIME_SENSITIVITY_ROTATION = SECONDS_PER_DAY / 2000; // 200pxドラッグで1日
-export const DRAG_TIME_SENSITIVITY_ORBIT = SECONDS_PER_YEAR / 20000;   // 200pxドラッグで1年
+export const DRAG_TIME_SENSITIVITY_ORBIT = SECONDS_PER_YEAR / 100000;   // 200pxドラッグで1年
 
 export const DAMPING_FACTOR = 5.0;             // 慣性の減衰係数
 
