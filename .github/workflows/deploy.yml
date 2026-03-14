@@ -1,0 +1,52 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: ['main'] # または 'master'。運用しているブランチ名に合わせる
+
+# GitHub Pagesへのデプロイに必要な権限の付与
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 複数回のプッシュが連続で行われた際、進行中の古いデプロイをキャンセルし、最新のもののみを実行する制御
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # LTSバージョンを指定
+          cache: 'npm'
+
+      - name: Install dependencies
+        # npm install ではなく、package-lock.json に厳密に従う npm ci (Clean Install) を使用する
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # Viteのデフォルトのビルド出力先ディレクトリを指定
+          path: './dist'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
