@@ -18,6 +18,8 @@ import {
   SECONDS_PER_YEAR,
 } from '../constants';
 
+import { Stars } from '@react-three/drei';
+
 interface Props {
   mode: 'rotation' | 'orbit';
   onVerticalDrag: (deltaY: number) => void;
@@ -29,7 +31,6 @@ interface Props {
 export default function InteractiveParticleSphere({ mode, onVerticalDrag, onTimeUpdate, onEarthPositionChange }: Props) {
   const rotationGroupRef = useRef<THREE.Group>(null);
   const orbitGroupRef = useRef<THREE.Group>(null);
-  const earthWorldPosition = useRef(new THREE.Vector3());
 
   // ジオメトリを共通化（半径1で作成し、スケールで調整）
   const { pointsGeometry, lineGeometry } = useMemo(() => ({
@@ -77,8 +78,14 @@ export default function InteractiveParticleSphere({ mode, onVerticalDrag, onTime
   // 現在の値を保持するRef
   const currentEarthRadius = useRef(EARTH_RADIUS_ROTATION);
   const currentOrbitRadius = useRef(0);
+  
+  // 惑星の位置を更新するためのRef
+  const mercuryRef = useRef<THREE.Group>(null);
+  const venusRef = useRef<THREE.Group>(null);
+  const marsRef = useRef<THREE.Group>(null);
 
   // 公転アニメーションと位置更新
+  const earthWorldPosition = useMemo(() => new THREE.Vector3(), []);
   useFrame((_, delta) => {
     // スムーズな遷移のための補間（1秒間に指定のスピードで近づく）
     currentEarthRadius.current += (targetEarthRadius - currentEarthRadius.current) * Math.min(1, delta * 6);
@@ -91,7 +98,23 @@ export default function InteractiveParticleSphere({ mode, onVerticalDrag, onTime
     const rotationAngle = (currentSimulatedSeconds % SECONDS_PER_DAY) / SECONDS_PER_DAY * Math.PI * 2;
     
     // 公転角度：1年(SECONDS_PER_YEAR)で2π回転
-    const orbitAngle = (currentSimulatedSeconds % SECONDS_PER_YEAR) / SECONDS_PER_YEAR * Math.PI * 2;
+    const orbitAngle = (currentSimulatedSeconds / SECONDS_PER_YEAR) * Math.PI * 2;
+
+    // 惑星の位置更新（再レンダリングせずにRefを直接操作して軽量化）
+    if (mode === 'orbit') {
+      if (mercuryRef.current) {
+        mercuryRef.current.position.x = Math.cos(orbitAngle * 4.15) * 6;
+        mercuryRef.current.position.z = -Math.sin(orbitAngle * 4.15) * 6;
+      }
+      if (venusRef.current) {
+        venusRef.current.position.x = Math.cos(orbitAngle * 1.62) * 11;
+        venusRef.current.position.z = -Math.sin(orbitAngle * 1.62) * 11;
+      }
+      if (marsRef.current) {
+        marsRef.current.position.x = Math.cos(orbitAngle * 0.53) * 26;
+        marsRef.current.position.z = -Math.sin(orbitAngle * 0.53) * 26;
+      }
+    }
 
     if (orbitGroupRef.current) {
       // 太陽を中心とした反時計回りの軌道（Z軸はマイナス方向が画面奥）
@@ -106,19 +129,50 @@ export default function InteractiveParticleSphere({ mode, onVerticalDrag, onTime
 
     // 毎フレーム、地球位置を通知
     if (orbitGroupRef.current) {
-      orbitGroupRef.current.getWorldPosition(earthWorldPosition.current);
-      onEarthPositionChange(earthWorldPosition.current);
+      orbitGroupRef.current.getWorldPosition(earthWorldPosition);
+      onEarthPositionChange(earthWorldPosition);
     }
   });
 
   return (
     <>
+      {/* 背景の星空 */}
+      <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
+
       {/* 太陽（公転モードのみ） */}
       {mode === 'orbit' && (
         <mesh position={[0, 0, 0]}>
-          <sphereGeometry args={[1, 16, 16]} />
-          <meshBasicMaterial color="yellow" />
+          <sphereGeometry args={[2.5, 32, 32]} />
+          <meshBasicMaterial color="#ffffff" />
+          <pointLight color="#ffffff" intensity={2} distance={100} />
         </mesh>
+      )}
+
+      {/* 他の惑星（公転モードのみ） */}
+      {mode === 'orbit' && (
+        <>
+          {/* 水星 */}
+          <group ref={mercuryRef}>
+            <mesh>
+              <sphereGeometry args={[0.4, 16, 16]} />
+              <meshStandardMaterial color="#ffffff" roughness={0.8} />
+            </mesh>
+          </group>
+          {/* 金星 */}
+          <group ref={venusRef}>
+            <mesh>
+              <sphereGeometry args={[0.9, 32, 32]} />
+              <meshStandardMaterial color="#ffffff" roughness={0.6} />
+            </mesh>
+          </group>
+          {/* 火星 */}
+          <group ref={marsRef}>
+            <mesh>
+              <sphereGeometry args={[0.6, 32, 32]} />
+              <meshStandardMaterial color="#ffffff" roughness={0.7} />
+            </mesh>
+          </group>
+        </>
       )}
 
       {/* 地球 */}
@@ -126,12 +180,14 @@ export default function InteractiveParticleSphere({ mode, onVerticalDrag, onTime
         <group rotation={[0, 0, TILT_ANGLE]}>
           <group ref={rotationGroupRef}>
             <points geometry={pointsGeometry}>
-              <pointsMaterial color="white" size={0.03} sizeAttenuation={true} />
+              <pointsMaterial color="#ffffff" size={0.05} sizeAttenuation={true} transparent opacity={0.8} />
             </points>
-            <primitive object={new THREE.Line(lineGeometry, new THREE.LineBasicMaterial({ color: 'gray' }))} />
+            <primitive object={new THREE.Line(lineGeometry, new THREE.LineBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.8 }))} />
           </group>
         </group>
       </group>
+
+      <ambientLight intensity={mode === 'orbit' ? 0.2 : 0.8} />
     </>
   );
 }
