@@ -49,7 +49,7 @@ function Fireworks() {
       const color = colors[Math.floor(Math.random() * colors.length)];
       const numParticles = 30 + Math.floor(Math.random() * 30); // 30〜60個のパーティクル
       
-      const newParticles = [];
+      const newParticles: { id: number; position: THREE.Vector3; velocity: THREE.Vector3; age: number; lifespan: number; color: string; size: number }[] = [];
       for (let i = 0; i < numParticles; i++) {
         // 球状に広がるランダムな速度ベクトル
         const theta = Math.random() * Math.PI * 2;
@@ -78,7 +78,7 @@ function Fireworks() {
 
     // パーティクルの更新
     setParticles(prev => {
-      const nextParticles = prev.map(p => {
+      const nextParticles: { id: number; position: THREE.Vector3; velocity: THREE.Vector3; age: number; lifespan: number; color: string; size: number }[] = prev.map(p => {
         // 重力による落下と空気抵抗
         const newVel = p.velocity.clone();
         newVel.y -= 9.8 * delta; // 重力
@@ -232,7 +232,7 @@ export default function InteractiveParticleSphere({ mode, onVerticalDrag, onTime
 
   // 毎フレーム、地球位置を通知
   const earthWorldPosition = useMemo(() => new THREE.Vector3(), []);
-  useFrame((state, delta) => {
+  useFrame((_, delta) => {
     // スムーズな遷移のための補間（1秒間に指定のスピードで近づく）
     currentEarthRadius.current += (targetEarthRadius - currentEarthRadius.current) * Math.min(1, delta * 6);
     currentOrbitRadius.current += (targetOrbitRadius - currentOrbitRadius.current) * Math.min(1, delta * 6);
