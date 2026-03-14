@@ -38,6 +38,10 @@ export const DAMPING_FACTOR = 5.0;             // 回転減衰係数
 export const CONSTANT_ROTATION_SPEED = 0.01;   // 定常回転速度
 export const VELOCITY_THRESHOLD = 0.0001;      // 速度の閾値（これ以下は0とみなす）
 
+// 日付表示の時間スケール
+export const ROTATION_TIME_SCALE = 60 * 60;    // 自転モード：1秒が1時間に相当 (3600秒)
+export const ORBIT_TIME_SCALE = 24 * 60 * 60;  // 公転モード：1秒が1日に相当 (86400秒)
+
 // ジオメトリ設定
 export const POINTS_COUNT = 1000;              // 球面上に配置するパーティクル数
 export const AXIS_LINE_MULTIPLIER = 1.2;       // 軸線の長さ倍率

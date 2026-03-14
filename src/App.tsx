@@ -1,6 +1,7 @@
 // メインアプリケーションファイル
 // 3Dシーン全体を管理し、カメラ制御とモード切替を行う
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
+import { Html } from '@react-three/drei';
 import { useRef, useState } from 'react';
 import * as THREE from 'three';
 import '@react-three/fiber';
@@ -12,7 +13,10 @@ import {
   TARGET_INTERPOLATION_SPEED,
   ORBIT_MODE_THRESHOLD,
   DRAG_SENSITIVITY_VERTICAL,
+  ROTATION_TIME_SCALE,
+  ORBIT_TIME_SCALE,
 } from './constants';
+
 
 // 3Dシーンのメインコンテンツコンポーネント
 // カメラ制御とモード管理を行う
@@ -48,6 +52,23 @@ function AppContent() {
     return earthPosition.current.clone().lerp(new THREE.Vector3(0, 0, 0), zoom.current);
   };
 
+  // 日付表示フォーマット（YYYY-MM-DD HH:MM）
+  function formatDate(date: Date) {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const year = date.getFullYear();
+    const month = pad(date.getMonth() + 1);
+    const day = pad(date.getDate());
+    const hours = pad(date.getHours());
+    const minutes = pad(date.getMinutes());
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
+  }
+
+  // シミュレーション内の日時管理
+  const initialSimulatedDate = new Date();
+  const simulatedTimeRef = useRef(initialSimulatedDate);
+  const [displayTime, setDisplayTime] = useState(() => formatDate(initialSimulatedDate));
+  const timeAccumulator = useRef(0);
+
   // 毎フレームの更新処理
   useFrame((_, delta) => {
     // ズームの滑らかな遷移
@@ -68,14 +89,46 @@ function AppContent() {
       modeRef.current = nextMode;
       setMode(nextMode);
     }
+
+    // 日付をモードに応じて進める（自転: 1秒=1時間、公転: 1秒=1日）
+    const timeScale = modeRef.current === 'rotation' ? ROTATION_TIME_SCALE : ORBIT_TIME_SCALE;
+    const deltaMs = delta * 1000 * timeScale;
+    simulatedTimeRef.current = new Date(simulatedTimeRef.current.getTime() + deltaMs);
+
+    // 表示更新は0.2秒ごとに行う
+    timeAccumulator.current += delta;
+    if (timeAccumulator.current >= 0.2) {
+      timeAccumulator.current = 0;
+      setDisplayTime(formatDate(simulatedTimeRef.current));
+    }
   });
 
   return (
-    <InteractiveParticleSphere
-      mode={mode}
-      onVerticalDrag={handleVerticalDrag}
-      onEarthPositionChange={handleEarthPositionChange}
-    />
+    <>
+      <Html fullscreen style={{ pointerEvents: 'none' }}>
+        <div
+          style={{
+            position: 'absolute',
+            top: 12,
+            left: 12,
+            color: 'white',
+            fontFamily: 'monospace',
+            fontSize: 14,
+            pointerEvents: 'none',
+            userSelect: 'none',
+          }}
+        >
+          <div>{mode === 'rotation' ? '自転モード' : '公転モード'}</div>
+          <div>{displayTime}</div>
+        </div>
+      </Html>
+
+      <InteractiveParticleSphere
+        mode={mode}
+        onVerticalDrag={handleVerticalDrag}
+        onEarthPositionChange={handleEarthPositionChange}
+      />
+    </>
   );
 }
 
