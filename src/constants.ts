@@ -7,7 +7,7 @@ export const TILT_ANGLE = -23.4 * (Math.PI / 180);
 
 // カメラオフセット設定
 export const CLOSE_OFFSET = new THREE.Vector3(0, 2, 6);  // 自転モード時のカメラオフセット
-export const FAR_OFFSET = new THREE.Vector3(0, 18, 18);   // 公転モード時のカメラオフセット
+export const FAR_OFFSET = new THREE.Vector3(0, 24, 24);   // 公転モード時のカメラオフセット
 
 // 補間速度設定
 export const ZOOM_INTERPOLATION_SPEED = 6;     // ズーム遷移の補間速度
@@ -31,7 +31,7 @@ export const SELF_ROTATION_RATIO = 365;        // 自転と公転の速度比（
 // ドラッグ感度設定
 export const DRAG_SENSITIVITY_HORIZONTAL = 0.005;  // 水平ドラッグの感度
 export const DRAG_SENSITIVITY_VERTICAL = 0.0015;   // 垂直ドラッグの感度
-export const DRAG_SENSITIVITY_ORBIT = 0.0005;      // 公転速度調整のドラッグ感度
+export const DRAG_SENSITIVITY_ORBIT = 0.002;      // 公転速度調整のドラッグ感度
 
 // 物理シミュレーション設定
 export const DAMPING_FACTOR = 5.0;             // 回転減衰係数
