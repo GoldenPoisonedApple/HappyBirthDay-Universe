@@ -38,7 +38,7 @@ function AppContent({
   // 初期日付を現在時刻の半年前に設定する
   const initialDate = useMemo(() => {
     const date = new Date();
-    date.setMonth(date.getMonth() - 3);
+    date.setMonth(date.getMonth() - 1);
     return date;
   }, []);
 
