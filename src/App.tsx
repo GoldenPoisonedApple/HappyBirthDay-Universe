@@ -264,14 +264,16 @@ export default function App() {
           opacity: showBirthday ? 1 : 0,
           transition: 'all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
           filter: showBirthday ? 'blur(0px)' : 'blur(20px)',
+          width: '100%', // 横幅全体を使用
         }}
       >
         <div style={{
-          fontSize: '8vw',
+          fontSize: 'min(15vw, 120px)', // スマホでは画面幅の15%、PCなどでは最大120px
           fontWeight: 'bold',
-          letterSpacing: '0.2em',
+          letterSpacing: '0.1em', // スマホで見切れないように少し字間を詰める
+          lineHeight: '1.2', // 行間を調整
           textShadow: '0 0 20px rgba(255, 255, 255, 0.8), 0 0 40px rgba(255, 215, 0, 0.8), 0 0 80px rgba(255, 215, 0, 0.6), 0 0 120px rgba(255, 215, 0, 0.4)',
-          marginBottom: '10px'
+          marginBottom: '20px'
         }}>
           <div style={{ animation: showBirthday ? 'float 6s ease-in-out infinite' : 'none' }}>HAPPY</div>
           <div style={{ animation: showBirthday ? 'float 6s ease-in-out infinite 3s' : 'none' }}>BIRTHDAY</div>
@@ -279,10 +281,10 @@ export default function App() {
         
         {/* 日付表示（誕生日のときだけ表示される） */}
         <div style={{
-          fontSize: '3vw',
+          fontSize: 'min(6vw, 40px)', // スマホでは画面幅の6%、PCなどでは最大40px
           fontWeight: '300',
-          letterSpacing: '0.3em',
-          marginTop: '30px',
+          letterSpacing: '0.2em',
+          marginTop: '40px',
           color: 'rgba(255, 255, 255, 0.9)',
           textShadow: '0 0 10px rgba(255, 255, 255, 0.5), 0 0 20px rgba(255, 215, 0, 0.5)',
           animation: showBirthday ? 'float 6s ease-in-out infinite 1.5s' : 'none'
