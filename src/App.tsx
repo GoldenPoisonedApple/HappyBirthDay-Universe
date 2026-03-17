@@ -11,6 +11,7 @@ import {
   TARGET_INTERPOLATION_SPEED,
   ORBIT_MODE_THRESHOLD,
   DRAG_SENSITIVITY_VERTICAL,
+  INITIAL_MONTH_OFFSET,
 } from './constants';
 
 // 3Dシーンのメインコンテンツコンポーネント
@@ -35,10 +36,10 @@ function AppContent({
   const zoom = useRef(1); // 現在のズーム値も 1 に初期化
   const { camera } = useThree();
 
-  // 初期日付を現在時刻の半年前に設定する
+  // 初期日付を現在時刻のINITIAL_MONTH_OFFSETヶ月前に設定する
   const initialDate = useMemo(() => {
     const date = new Date();
-    date.setMonth(date.getMonth() - 1);
+    date.setMonth(date.getMonth() - INITIAL_MONTH_OFFSET);
     return date;
   }, []);
 

@@ -38,6 +38,9 @@ export const DRAG_TIME_SENSITIVITY_ORBIT = SECONDS_PER_YEAR / 100000;   // 200px
 
 export const DAMPING_FACTOR = 5.0;             // 慣性の減衰係数
 
+// 初期日付のオフセット（何ヶ月前からスタートするか）
+export const INITIAL_MONTH_OFFSET = 1;
+
 // ジオメトリ設定
 export const POINTS_COUNT = 2000;             // 球体上のパーティクル数
 export const AXIS_LINE_MULTIPLIER = 1.2;      // 軸線の長さ倍率
