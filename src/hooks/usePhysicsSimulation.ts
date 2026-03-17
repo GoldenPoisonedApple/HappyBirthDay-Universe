@@ -41,10 +41,10 @@ export function useTimeSimulation(
     // スローモーション係数（定常速度および慣性用）
     let autoTimeScaleMultiplier = 1.0;
     if (isBirthdayToday) {
-      autoTimeScaleMultiplier = 0.6; // 誕生日は通常の0.6倍の速度に
+      autoTimeScaleMultiplier = 0.4; // 誕生日は通常の0.6倍の速度に
     } else if (isNearBirthday) {
       // 7日前から当日に向けて徐々に遅くする（1.0 -> 0.6）
-      autoTimeScaleMultiplier = 0.6 + (0.4 * (daysUntilBirthday / 7));
+      autoTimeScaleMultiplier = 0.4 + (0.4 * (daysUntilBirthday / 7));
     }
 
     // --- 2. 決定した係数を使って時間を進める ---
@@ -86,9 +86,9 @@ export function useTimeSimulation(
 
     let dragTimeScaleMultiplier = 1.0;
     if (isBirthdayToday) {
-      dragTimeScaleMultiplier = 0.8; // ドラッグはほとんど重くならない(0.8倍)
+      dragTimeScaleMultiplier = 0.6; // ドラッグはほとんど重くならない(0.8倍)
     } else if (isNearBirthday) {
-      dragTimeScaleMultiplier = 0.8 + (0.2 * (daysUntilBirthday / 7));
+      dragTimeScaleMultiplier = 0.6 + (0.2 * (daysUntilBirthday / 7));
     }
 
     simulatedSeconds.current += amountSeconds * dragTimeScaleMultiplier;
