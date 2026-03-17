@@ -11,6 +11,7 @@ import {
   TARGET_INTERPOLATION_SPEED,
   ORBIT_MODE_THRESHOLD,
   DRAG_SENSITIVITY_VERTICAL,
+  INITIAL_MONTH_OFFSET,
 } from './constants';
 
 // 3Dシーンのメインコンテンツコンポーネント
@@ -35,10 +36,10 @@ function AppContent({
   const zoom = useRef(1); // 現在のズーム値も 1 に初期化
   const { camera } = useThree();
 
-  // 初期日付を現在時刻の半年前に設定する
+  // 初期日付を現在時刻のINITIAL_MONTH_OFFSETヶ月前に設定する
   const initialDate = useMemo(() => {
     const date = new Date();
-    date.setMonth(date.getMonth() - 1);
+    date.setMonth(date.getMonth() - INITIAL_MONTH_OFFSET);
     return date;
   }, []);
 
@@ -126,14 +127,14 @@ function AppContent({
 
     // 誕生日までの残り日数を親コンポーネントに伝える（表示用）
     // 1週間前から表示する
-    if (daysUntilBirthday > 0 && daysUntilBirthday <= 10) {
+    if (daysUntilBirthday > 0 && daysUntilBirthday <= 7) {
       setDaysUntil(Math.ceil(daysUntilBirthday));
     } else {
       setDaysUntil(null);
     }
 
     // 誕生日1週間前（7日以内）になったら強制的に自転モード（近距離）へズームイン
-    if (daysUntilBirthday > 0 && daysUntilBirthday <= 10) {
+    if (daysUntilBirthday > 0 && daysUntilBirthday <= 7) {
       zoomTarget.current = 0; // 自転モードへ
     }
 
@@ -144,9 +145,22 @@ function AppContent({
     targetPosition.current.copy(earthPosition.current.clone().lerp(new THREE.Vector3(0, 0, 0), zoom.current));
     currentTarget.current.lerp(targetPosition.current, Math.min(1, delta * TARGET_INTERPOLATION_SPEED));
 
+    // スマホなどアスペクト比が縦長の場合のカメラオフセット補正
+    // 画面幅が狭い場合、カメラをより遠くに配置して被写体が画面に収まるようにする
+    const aspect = window.innerWidth / window.innerHeight;
+    let distanceMultiplier = 1.0;
+    if (aspect < 1.0) {
+      // 縦長画面の場合、アスペクト比に応じてカメラを遠ざける (最大で2倍程度まで)
+      distanceMultiplier = Math.min(2.0, 1.0 / aspect);
+    }
+
     // カメラ距離の補間
     currentOffset.current.lerpVectors(CLOSE_OFFSET, FAR_OFFSET, zoom.current);
-    camera.position.copy(currentTarget.current).add(currentOffset.current);
+    
+    // 補正を適用してカメラ位置を設定
+    const adjustedOffset = currentOffset.current.clone().multiplyScalar(distanceMultiplier);
+    camera.position.copy(currentTarget.current).add(adjustedOffset);
+    
     camera.lookAt(currentTarget.current);
 
     // ズームに応じてモード切替
