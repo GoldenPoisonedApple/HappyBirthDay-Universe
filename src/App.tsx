@@ -144,9 +144,22 @@ function AppContent({
     targetPosition.current.copy(earthPosition.current.clone().lerp(new THREE.Vector3(0, 0, 0), zoom.current));
     currentTarget.current.lerp(targetPosition.current, Math.min(1, delta * TARGET_INTERPOLATION_SPEED));
 
+    // スマホなどアスペクト比が縦長の場合のカメラオフセット補正
+    // 画面幅が狭い場合、カメラをより遠くに配置して被写体が画面に収まるようにする
+    const aspect = window.innerWidth / window.innerHeight;
+    let distanceMultiplier = 1.0;
+    if (aspect < 1.0) {
+      // 縦長画面の場合、アスペクト比に応じてカメラを遠ざける (最大で2倍程度まで)
+      distanceMultiplier = Math.min(2.0, 1.0 / aspect);
+    }
+
     // カメラ距離の補間
     currentOffset.current.lerpVectors(CLOSE_OFFSET, FAR_OFFSET, zoom.current);
-    camera.position.copy(currentTarget.current).add(currentOffset.current);
+    
+    // 補正を適用してカメラ位置を設定
+    const adjustedOffset = currentOffset.current.clone().multiplyScalar(distanceMultiplier);
+    camera.position.copy(currentTarget.current).add(adjustedOffset);
+    
     camera.lookAt(currentTarget.current);
 
     // ズームに応じてモード切替
