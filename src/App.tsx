@@ -127,14 +127,14 @@ function AppContent({
 
     // 誕生日までの残り日数を親コンポーネントに伝える（表示用）
     // 1週間前から表示する
-    if (daysUntilBirthday > 0 && daysUntilBirthday <= 10) {
+    if (daysUntilBirthday > 0 && daysUntilBirthday <= 7) {
       setDaysUntil(Math.ceil(daysUntilBirthday));
     } else {
       setDaysUntil(null);
     }
 
     // 誕生日1週間前（7日以内）になったら強制的に自転モード（近距離）へズームイン
-    if (daysUntilBirthday > 0 && daysUntilBirthday <= 10) {
+    if (daysUntilBirthday > 0 && daysUntilBirthday <= 7) {
       zoomTarget.current = 0; // 自転モードへ
     }
 
